@@ -35,22 +35,22 @@ export const PHYS = {
 
 export const CHARACTERS = {
   air: {
-    id: 'air', element: 'Luft', color: '#9fdcff', dark: '#3d7fb8',
+    id: 'air', element: 'Luft', color: '#9fdcff', dark: '#3d7fb8', outline: '#122a40', rim: 'rgba(225,248,255,0.85)', glow: '190,235,255',
     ability: 'Doppelsprung', abilityHint: 'In der Luft nochmal springen. Sprung halten = gleiten.',
     icon: '🌪️',
   },
   water: {
-    id: 'water', element: 'Wasser', color: '#3fd6d0', dark: '#1d4f9c',
+    id: 'water', element: 'Wasser', color: '#3fd6d0', dark: '#1d4f9c', outline: '#0b2240', rim: 'rgba(150,250,245,0.8)', glow: '110,235,230',
     ability: 'Wasser-Dash', abilityHint: 'Schneller Sprint durch die Luft – überwindet weite Lücken.',
     icon: '🌊',
   },
   earth: {
-    id: 'earth', element: 'Erde', color: '#9bd25a', dark: '#5a3a1e',
+    id: 'earth', element: 'Erde', color: '#9bd25a', dark: '#5a3a1e', outline: '#24170a', rim: 'rgba(205,240,140,0.8)', glow: '185,235,120',
     ability: 'Stampfer', abilityHint: 'In der Luft nach unten stampfen – zerbricht rissige Steine. Auf Pilzen: Mega-Sprung!',
     icon: '🪨',
   },
   fire: {
-    id: 'fire', element: 'Feuer', color: '#ff8a3d', dark: '#8c1f1f',
+    id: 'fire', element: 'Feuer', color: '#ff8a3d', dark: '#8c1f1f', outline: '#2e0a0a', rim: 'rgba(255,200,120,0.85)', glow: '255,160,80',
     ability: 'Feuerball', abilityHint: 'Wirft Feuerbälle – verbrennt Rankenwände und besiegt Mumien. Flammen von Feuerspeiern tun dir nichts.',
     icon: '🔥',
     armBScale: 0.22,   // Flammen-Hand bleibt sichtbar

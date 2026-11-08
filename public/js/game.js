@@ -2,11 +2,11 @@
 // Rendering. Ein Game-Objekt = ein laufendes Level.
 import { PHYS, VIEW_TILES_Y, MIN_VIEW_TILES_X, MAX_VIEW_TILES_Y, CHARACTERS, GEM_COLORS } from './config.js';
 import { Level, T } from './level.js';
-import { TileRenderer } from './tiles.js';
+import { TileRenderer, setBiome } from './tiles.js';
 import { Background } from './background.js';
 import { Particles } from './particles.js';
 import { Player } from './player.js';
-import { loadRig } from './rig.js';
+import { loadRig, drawRigOutlined } from './rig.js';
 import { createAnimState, updateAnim } from './anim.js';
 import * as E from './entities.js';
 import { createEnemies, updateEnemies, hitEnemy, enemyPose, drawEnemy, ENEMY_TYPES } from './enemies.js';
@@ -110,7 +110,7 @@ export class Game {
     this.worldDef = worldDef;
     this.level = new Level(levelDef);
     this.tiles = new TileRenderer(this.level);
-    this.bg = new Background(levelDef.theme);
+    this.bg = new Background(levelDef.theme, this.level.biome);
     this.fxp = new Particles();
     this.net = net || null;
     this.onFinish = onFinish;
@@ -488,6 +488,8 @@ export class Game {
     const prevY = this.me.y;
     this.me.update(dt, inp, this);
     if (!this.me.dead) { this._collect(); this._enemyContacts(prevY, inp); this._flameContacts(); }
+    // Element-Effekte aller Figuren (auch Mitspieler, aus deren Zustand)
+    for (const p of this.players.values()) this._charFx(p, dt);
     // Feuerbaelle
     this._updateFireballs(dt);
     this.fxp.update(dt);
@@ -710,6 +712,7 @@ export class Game {
     cx = Math.round(cx * s) / s; cy = Math.round(cy * s) / s;
     const lv = this.level, t = this.time, vw = this.viewW, vh = this.viewH;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    setBiome(lv.biome);
     this.bg.drawBack(ctx, cx, cy, s, W, H, lv, t);
     E.drawWaterfalls(ctx, lv, cx, cy, s, vw, vh, t);
     this.tiles.draw(ctx, cx, cy, s, vw, vh);
@@ -743,9 +746,12 @@ export class Game {
     for (const p of order) this._drawPlayer(ctx, p, cx, cy, s, t);
     this.fxp.draw(ctx, cx, cy, s);
     this.bg.drawFront(ctx, cx, cy, s, W, H, lv, t);
+    this.bg.drawAmbient(ctx, cx, cy, s, W, H, t);
     // Licht der Tageszeit
     this.bg.drawTint(ctx, W, H);
     if (this.bg.theme.glow) this._drawGlows(ctx, cx, cy, s, t, vis, order);
+    this.fxp.draw(ctx, cx, cy, s, true);
+    this.bg.drawAmbient(ctx, cx, cy, s, W, H, t, true);
     ctx.imageSmoothingEnabled = false;
     for (const f of this.flames) if (vis(f.x)) E.drawFlame(ctx, f, cx, cy, s, t);
     for (const f of this.fireballs) E.drawFireball(ctx, f, cx, cy, s, t);
@@ -762,7 +768,7 @@ export class Game {
     for (const g of lv.gems) if (!g.taken && vis(g.x)) E.drawGlow(ctx, (g.x - cx) * s, (g.y - cy) * s, s * (1.3 + 0.1 * Math.sin(t * 3)), (GEM_COLORS[g.el] || GEM_COLORS.skill).glow, 0.4);
     for (const cp of lv.checkpoints) if (cp.active && vis(cp.x)) E.drawGlow(ctx, (cp.x - cx) * s, (cp.y - 2.3 - cy) * s, s * 1.4, '255,250,210', 0.35);
     if (lv.goal && vis(lv.goal.x, 6)) E.drawGlow(ctx, (lv.goal.x - cx) * s, (lv.goal.y - 1.9 - cy) * s, s * 3, '170,200,255', 0.45);
-    for (const p of order) if (!p.dead) E.drawGlow(ctx, (p.x - cx) * s, (p.y - 0.9 - cy) * s, s * 1.6, '255,235,200', 0.16);
+    for (const p of order) if (!p.dead && (!p.remote || p.seen)) E.drawGlow(ctx, (p.x - cx) * s, (p.y - 0.9 - cy) * s, s * 1.9, CHARACTERS[p.charId].glow || '255,235,200', 0.24);
     for (const e of this.enemies) if (e.alive && e.def.fly && vis(e.x)) E.drawGlow(ctx, (e.x - cx) * s, (e.y - 0.6 - cy) * s, s * 1.2, '160,220,255', 0.3);
     ctx.restore();
   }
@@ -773,12 +779,76 @@ export class Game {
     if (p.dead && p.deadT > 0.5) return;
     const x = (p.x - cx) * s, y = (p.y - cy) * s;
     if (x < -3 * s || x > this.canvas.width + 3 * s) return;
-    // Schatten
-    if (p.onGround && !p.dead) {
-      ctx.fillStyle = 'rgba(20,40,20,0.22)';
-      ctx.beginPath(); ctx.ellipse(x, y - s * 0.02, s * 0.42, s * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+    const ch = CHARACTERS[p.charId];
+    // Schatten: auch in der Luft auf den Boden darunter, kleiner je hoeher
+    if (!p.dead) {
+      const gy = p.onGround ? p.y : this._groundBelow(p.x, p.y);
+      if (gy !== null) {
+        const d = gy - p.y, k = Math.max(0, 1 - d / 9);
+        if (k > 0) {
+          ctx.fillStyle = `rgba(15,25,35,${0.26 * k})`;
+          ctx.beginPath(); ctx.ellipse(x, (gy - cy) * s - s * 0.02, s * (0.2 + 0.24 * k), s * (0.05 + 0.05 * k), 0, 0, Math.PI * 2); ctx.fill();
+        }
+      }
     }
-    rig.draw(ctx, p.anim.pose, x, y + s * 0.04, PHYS.spriteH * s, p.facing, t);
+    const rim = this.bg.theme.glow ? ch.rim : null;
+    drawRigOutlined(ctx, rig, p.anim.pose, x, y + s * 0.04, PHYS.spriteH * s, p.facing, t, ch.outline, null, rim);
+  }
+
+  // Boden (feste Kachel, Steg, Wolke, bewegliche Plattform) unter einem Punkt
+  _groundBelow(x, y) {
+    const lv = this.level, tx = Math.floor(x);
+    let best = null;
+    for (let ty = Math.max(0, Math.floor(y)); ty < Math.min(lv.h, Math.floor(y) + 10); ty++) {
+      if (lv.solid(tx, ty) || lv.oneway(tx, ty)) { best = ty; break; }
+    }
+    for (const m of lv.movers) if (x >= m.x && x <= m.x + m.w && m.y >= y - 0.05 && (best === null || m.y < best)) best = m.y;
+    return best;
+  }
+
+  // Element-Effekte pro Figur: Luft-Wirbel, Wasser-Tropfen, Erd-Kiesel, Feuer-Glut.
+  // Rein aus dem sichtbaren Zustand -> funktioniert auch fuer Mitspieler.
+  _charFx(p, dt) {
+    if (this.demo || p.dead || (p.remote && !p.seen)) { p._wasGround = p.onGround; return; }
+    if (Math.abs(p.x - (this.cam.x + this.viewW / 2)) > this.viewW) return;
+    const P = this.fxp, f = p.facing || 1, sp = Math.abs(p.vx), R = Math.random;
+    const chance = (rate) => R() < rate * dt;
+    const id = p.charId;
+    // Landung / Absprung erkennen
+    if (!p.onGround) p._airT = (p._airT || 0) + dt;
+    const landed = p.onGround && p._wasGround === false && (p._airT || 0) > 0.22;
+    const jumped = !p.onGround && p._wasGround === true && p.vy < -5;
+    if (p.onGround) p._airT = 0;
+    p._wasGround = p.onGround;
+    if (id === 'air') {
+      if ((!p.onGround || sp > PHYS.walkMax * 0.8) && chance(p.gliding ? 4 : 9)) {
+        P.add({ x: p.x - f * 0.25 + (R() - 0.5) * 0.3, y: p.y - 0.3 - R() * 1.1, vx: -f * (1 + R()) - p.vx * 0.1, vy: -0.3 - R() * 0.4, type: 'wisp', size: 0.14 + R() * 0.12, grow: 0.25, rot: R() * 6, vr: (R() < 0.5 ? -1 : 1) * 7, life: 0.45, drag: 2, color: 'rgba(235,250,255,0.9)' });
+      }
+      if (p.gliding && chance(26)) for (const side of [-1, 1]) P.add({ x: p.x + side * 0.55, y: p.y - 1.35, vx: -p.vx * 0.25, vy: 0.2, type: 'circle', size: 0.07, life: 0.35, color: '#ffffff' });
+      if (p.onGround && sp < 0.3 && chance(1.6)) P.add({ x: p.x + (R() - 0.5) * 0.7, y: p.y - 0.15, vx: (R() - 0.5) * 0.6, vy: -0.5, type: 'wisp', size: 0.12, grow: 0.15, rot: R() * 6, vr: 5, life: 0.7, color: 'rgba(225,248,255,0.8)' });
+      if (landed) for (let i = 0; i < 8; i++) { const d = i < 4 ? -1 : 1; P.add({ x: p.x + d * 0.2, y: p.y - 0.15, vx: d * (2 + R() * 2.5), vy: -0.4 - R() * 0.6, type: 'wisp', size: 0.16, grow: 0.3, rot: R() * 6, vr: d * 8, life: 0.4, drag: 3, color: 'rgba(240,252,255,0.9)' }); }
+    } else if (id === 'water') {
+      if (p.onGround && sp > 2 && chance(sp * 1.6)) P.add({ x: p.x - f * 0.2, y: p.y - 0.06, vx: -f * (1 + R() * 2), vy: -(2 + R() * 2.2), grav: 26, type: 'drop', size: 0.1, life: 0.55, drag: 0.5, color: ['#9ff4ff', '#3fd6d0', '#ffffff'][Math.floor(R() * 3)] });
+      if (!p.onGround && chance(6)) P.add({ x: p.x + (R() - 0.5) * 0.5, y: p.y - 0.4 - R() * 0.8, vx: p.vx * 0.1, vy: 0.5, grav: 20, type: 'drop', size: 0.08, life: 0.5, color: '#9ff4ff' });
+      if (chance(1.4)) P.add({ x: p.x + (R() - 0.5) * 0.7, y: p.y - 0.5 - R() * 0.9, vx: (R() - 0.5) * 0.3, vy: -0.7, type: 'ring', size: 0.06, grow: 0.04, life: 1.1, drag: 1, color: 'rgba(210,250,255,0.85)' });
+      if (landed) P.burst(p.x, p.y - 0.08, 12, { angle: -Math.PI / 2, spread: 2.4, speed: 4.5, grav: 24, drag: 0.6, type: 'drop', size: 0.11, life: 0.55, color: ['#9ff4ff', '#3fd6d0', '#ffffff', '#1d78c9'] });
+    } else if (id === 'earth') {
+      if (p.onGround && sp > 2 && chance(sp * 1.2)) {
+        if (R() < 0.8) P.add({ x: p.x - f * 0.2, y: p.y - 0.06, vx: -f * (0.5 + R() * 1.5), vy: -(1.6 + R() * 2.4), grav: 30, size: 0.09 + R() * 0.05, rot: R(), vr: 10, life: 0.6, drag: 0.4, color: ['#8f5631', '#b8743f', '#6c3e23', '#c9a46e'][Math.floor(R() * 4)] });
+        else P.add({ x: p.x - f * 0.2, y: p.y - 0.2, vx: -f * (0.4 + R()), vy: -(1 + R()), grav: 3, drag: 2, type: 'leaf', size: 0.16, rot: R() * 6, vr: 6, life: 1.0, color: R() < 0.5 ? '#9bd25a' : '#c4f05a' });
+      }
+      if (p.onGround && sp < 0.3 && chance(0.9)) P.add({ x: p.x + (R() - 0.5) * 0.8, y: p.y - 0.1, vx: (R() - 0.5) * 0.4, vy: -0.6, drag: 1.5, type: 'leaf', size: 0.14, rot: R() * 6, vr: 4, life: 1.2, color: '#b6ec55' });
+      if (landed) P.burst(p.x, p.y - 0.1, 10, { angle: -Math.PI / 2, spread: 2.6, speed: 4, grav: 30, drag: 0.5, size: 0.12, spin: 12, life: 0.6, color: ['#8f5631', '#b8743f', '#6c3e23', '#9bd25a'] });
+    } else if (id === 'fire') {
+      const rig = this.rigs.fire, nat = rig ? rig.natural : 1;
+      if (chance(sp > 2 ? 16 : 9)) P.add({ x: p.x + f * nat * 0.42 + (R() - 0.5) * 0.16, y: p.y - 1.38 + (R() - 0.5) * 0.12, vx: (R() - 0.5) * 0.5 - p.vx * 0.15, vy: -1.4 - R() * 0.8, drag: 1, size: 0.07 + R() * 0.04, grow: -0.08, life: 0.55, glow: true, color: ['#ffd23d', '#ff8a3d', '#ff5a2a'][Math.floor(R() * 3)] });
+      if (p.onGround && sp > 3 && chance(sp * 0.9)) P.add({ x: p.x - f * 0.2, y: p.y - 0.05, vx: -f * R(), vy: -0.8 - R() * 0.6, drag: 1.5, size: 0.08, grow: -0.1, life: 0.35, glow: true, color: R() < 0.5 ? '#ffb03a' : '#ff6a2a' });
+      if (landed) P.burst(p.x, p.y - 0.1, 10, { angle: -Math.PI / 2, spread: 2.8, speed: 3.5, grav: -1, drag: 2, size: 0.1, life: 0.5, glow: true, color: ['#ffd23d', '#ff8a3d', '#ff5a2a'] });
+    }
+    if (jumped) {
+      const col = CHARACTERS[id].color;
+      P.burst(p.x, p.y - 0.05, 5, { angle: Math.PI / 2, spread: 2.4, speed: 2, drag: 4, size: 0.1, life: 0.3, type: 'circle', color: [col, '#ffffff'] });
+    }
   }
 
   _drawName(ctx, p, cx, cy, s) {

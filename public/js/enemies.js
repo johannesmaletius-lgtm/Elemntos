@@ -2,7 +2,7 @@
 // Kanten und Dornen um). Die Bewegung haengt nur von der gemeinsamen Spielzeit ab,
 // darum sehen alle Mitspieler die Mumien an derselben Stelle.
 import { T } from './level.js';
-import { neutralPose } from './rig.js';
+import { neutralPose, drawRigOutlined } from './rig.js';
 
 export const ENEMY_TYPES = {
   // klein, gedrungen: wie ein Gumba – einmal draufspringen
@@ -190,7 +190,7 @@ export function drawEnemy(ctx, e, rig, camX, camY, s, time) {
         ctx.beginPath(); ctx.arc(tx, ty, s * (0.22 - i * 0.05), 0, Math.PI * 2); ctx.fill();
       }
     }
-    rig.draw(ctx, e.pose, x, y + s * 0.03, e.def.spriteH * s, e.dir, time);
+    drawRigOutlined(ctx, rig, e.pose, x, y + s * 0.03, e.def.spriteH * s, e.dir, time, 'rgba(40,90,130,0.9)');
     return;
   }
   if (e.alive) {
@@ -204,5 +204,5 @@ export function drawEnemy(ctx, e, rig, camX, camY, s, time) {
     g.addColorStop(0, `rgba(255,60,40,${0.25 + 0.1 * Math.sin(time * 12)})`); g.addColorStop(1, 'rgba(255,60,40,0)');
     ctx.fillStyle = g; ctx.fillRect(x - r, y - s * 1.4 - r, r * 2, r * 2);
   }
-  rig.draw(ctx, e.pose, x, y + s * 0.03, e.def.spriteH * s, e.dir, time);
+  drawRigOutlined(ctx, rig, e.pose, x, y + s * 0.03, e.def.spriteH * s, e.dir, time, e.angry ? '#4a0e0e' : '#2a2026');
 }

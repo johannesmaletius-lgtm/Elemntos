@@ -4,12 +4,16 @@ import { PixBuf, rgb } from './tiles.js';
 import { Background, THEMES } from './background.js';
 import { mulberry32 } from './util.js';
 import { GEM_COLORS, GEM_ORDER } from './config.js';
+import { getBiome } from './biomes.js';
 
-function makeMapIsland(seed, w) {
+function makeMapIsland(seed, w, biomeId) {
   const h = Math.floor(w * 0.9);
   const b = new PixBuf(w, h), rnd = mulberry32(seed);
-  const grass = [rgb('#d4f75a'), rgb('#97e033'), rgb('#5cb82b'), rgb('#2f8a26'), rgb('#1b5a1e')];
-  const rock = [rgb('#d9975a'), rgb('#b8743f'), rgb('#8f5631'), rgb('#6c3e23'), rgb('#4a2918')];
+  const B = getBiome(biomeId), P = B.pal || {};
+  const gp = (k, d) => rgb(P[k] || d);
+  const grass = [gp('grassHi', '#d4f75a'), gp('grassL', '#97e033'), gp('grassM', '#5cb82b'), gp('grassD', '#2f8a26'), gp('grassO', '#1b5a1e')];
+  const rock = [gp('rockL', '#d9975a'), gp('rockM', '#b8743f'), gp('rockD', '#8f5631'), gp('rockDD', '#6c3e23'), gp('mortar', '#4a2918')];
+  const lv = (B.tree.leaves || B.tree.caps[0]).map(c => rgb(c));
   const topY = Math.floor(h * 0.3);
   const depthAt = [];
   for (let x = 0; x < w; x++) {
@@ -38,7 +42,7 @@ function makeMapIsland(seed, w) {
     const cx = Math.floor(w * (0.2 + rnd() * 0.6)), r = 3 + Math.floor(rnd() * 3);
     if (Math.abs(cx - w / 2) < 6) continue; // Mitte frei fuer Figuren
     for (let y = 0; y < 4; y++) b.set(cx, topY - 1 - y, rgb('#5a3519'));
-    for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r) b.set(cx + x, topY - 4 - r + y, (x + y) < -1 ? grass[0] : (x + y) < 2 ? grass[1] : grass[3]);
+    for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r) b.set(cx + x, topY - 4 - r + y, (x + y) < -1 ? lv[0] : (x + y) < 2 ? lv[1] : lv[2]);
   }
   for (let k = 0; k < 3; k++) {
     const vx = Math.floor(w * (0.25 + rnd() * 0.5)), len = 3 + Math.floor(rnd() * 6);
@@ -51,7 +55,7 @@ export class WorldMap {
   constructor(world) {
     this.world = world;
     this.bg = new Background('day');
-    this.islands = world.maps.map((_, i) => makeMapIsland(31 + i * 7, 40 + (i % 3) * 4));
+    this.islands = world.maps.map((m, i) => makeMapIsland(31 + i * 7, 40 + (i % 3) * 4, m.biome));
     this.nodes = [];
     this.stars = [];
     const rnd = mulberry32(5);

@@ -1,6 +1,6 @@
 // Objekte im Level: Muenzen, Kristalle, Pilz-Trampoline, Checkpoints, Ziel-Tor,
 // Broeckel- und bewegliche Plattformen, Feuerbaelle. Sprites prozedural.
-import { PixBuf, rgb, PAL, TS } from './tiles.js';
+import { PixBuf, rgb, PAL, TS, currentBiome } from './tiles.js';
 import { mulberry32, makeCanvas } from './util.js';
 import { GEM_COLORS } from './config.js';
 
@@ -112,8 +112,9 @@ export function entitySprites() {
 
 function slab(w) {
   const S = entitySprites();
-  if (!S.slabs[w]) S.slabs[w] = makeSlab(w);
-  return S.slabs[w];
+  const key = `${currentBiome()}:${w}`;
+  if (!S.slabs[key]) S.slabs[key] = makeSlab(w);
+  return S.slabs[key];
 }
 
 // ---------- Zeichnen ----------

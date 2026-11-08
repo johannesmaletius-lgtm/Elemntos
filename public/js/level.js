@@ -34,6 +34,7 @@ export class Level {
     this.name = def.name;
     this.id = def.id;
     this.theme = def.theme || 'day';
+    this.biome = def.biome || 'meadow';
     this.h = def.height;
     const rows = [];
     for (let y = 0; y < this.h; y++) rows.push([]);

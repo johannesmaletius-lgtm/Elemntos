@@ -143,3 +143,54 @@ export class Rig {
     ctx.restore();
   }
 }
+
+// ---------- Figur mit Umriss ----------
+// Zeichnet die Figur zuerst in eine Hilfs-Leinwand, legt daraus eine dunkle
+// Silhouette an und setzt sie in 8 Richtungen versetzt darunter. So hebt sich
+// jede Figur von jedem Hintergrund ab (hell, dunkel, bunt).
+let SA = null, SB = null;
+function scratch(c, w, h) {
+  if (!c) { c = document.createElement('canvas'); }
+  if (c.width < w || c.height < h) { c.width = Math.max(c.width, w); c.height = Math.max(c.height, h); }
+  return c;
+}
+const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [0.71, 0.71], [-0.71, 0.71], [0.71, -0.71], [-0.71, -0.71]];
+
+export function drawRigOutlined(ctx, rig, pose, x, y, heightPx, facing, time, outline = '#1a1420', ow = null, rim = null) {
+  if (!rig) return;
+  if (ow === null) ow = Math.max(1, heightPx * 0.016);
+  const W = Math.ceil(heightPx * 1.7), H = Math.ceil(heightPx * 1.8);
+  const fx = W / 2, fy = Math.ceil(heightPx * 1.2);
+  SA = scratch(SA, W, H); SB = scratch(SB, W, H);
+  const a = SA.getContext('2d'), b = SB.getContext('2d');
+  a.setTransform(1, 0, 0, 1, 0, 0); a.clearRect(0, 0, W, H);
+  a.imageSmoothingEnabled = true; a.imageSmoothingQuality = 'high';
+  a.globalAlpha = 1;
+  rig.draw(a, pose, fx, fy, heightPx, facing, time);
+  // Silhouette
+  b.setTransform(1, 0, 0, 1, 0, 0); b.clearRect(0, 0, W, H);
+  b.globalCompositeOperation = 'source-over';
+  b.drawImage(SA, 0, 0, W, H, 0, 0, W, H);
+  b.globalCompositeOperation = 'source-in';
+  b.fillStyle = outline; b.fillRect(0, 0, W, H);
+  b.globalCompositeOperation = 'source-over';
+  const ox = Math.round(x - fx), oy = Math.round(y - fy);
+  const sm = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  for (const [dx, dy] of DIRS) ctx.drawImage(SB, 0, 0, W, H, ox + dx * ow, oy + dy * ow, W, H);
+  ctx.drawImage(SA, 0, 0, W, H, ox, oy, W, H);
+  // Randlicht in Elementfarbe (oben/hinten), nur angedeutet
+  if (rim) {
+    b.clearRect(0, 0, W, H);
+    b.drawImage(SA, 0, 0, W, H, 0, 0, W, H);
+    b.globalCompositeOperation = 'source-in';
+    b.fillStyle = rim; b.fillRect(0, 0, W, H);
+    b.globalCompositeOperation = 'destination-out';
+    b.drawImage(SA, 0, 0, W, H, -ow * 0.9 * facing, ow * 1.1, W, H);
+    b.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha *= 0.85;
+    ctx.drawImage(SB, 0, 0, W, H, ox, oy, W, H);
+    ctx.globalAlpha /= 0.85;
+  }
+  ctx.imageSmoothingEnabled = sm;
+}

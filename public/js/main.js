@@ -8,7 +8,7 @@ import { WORLD1 } from './levels/world1.js';
 import { Game } from './game.js';
 import { Input } from './input.js';
 import { Net } from './net.js';
-import { loadRig } from './rig.js';
+import { loadRig, drawRigOutlined } from './rig.js';
 import { targetPose, createAnimState } from './anim.js';
 import { initAudio, startMusic, stopMusic, isMuted, setMuted, sfx } from './audio.js';
 import { load, save, setUrl } from './storage.js';
@@ -105,7 +105,7 @@ function drawPreviews(time) {
     if (mode === 'run') p.anim.phase = time * 9 * Math.PI * 2 / 3.1;
     const { T } = targetPose(p.anim, fakeState(p.charId, mode), 0, time);
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-    rig.draw(ctx, T, W / 2, H * 0.97, H * 0.9, 1, time);
+    drawRigOutlined(ctx, rig, T, W / 2, H * 0.97, H * 0.9, 1, time, CHARACTERS[p.charId].outline);
   }
 }
 const mapAnims = {};
@@ -115,7 +115,7 @@ function drawMapChar(ctx, charId, x, y, h, time) {
   const a = mapAnims[charId] || (mapAnims[charId] = createAnimState());
   const { T } = targetPose(a, fakeState(charId, 'idle'), 0, time);
   ctx.imageSmoothingEnabled = true;
-  rig.draw(ctx, T, x, y, h, 1, time);
+  drawRigOutlined(ctx, rig, T, x, y, h, 1, time, CHARACTERS[charId].outline);
 }
 
 function buildTitleChars() {

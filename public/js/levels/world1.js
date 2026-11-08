@@ -15,21 +15,21 @@ import l08 from './w1/l08.js';
 import l09 from './w1/l09.js';
 import l10 from './w1/l10.js';
 
-const L = (n, id, name, theme, build) => ({ id, name, theme, height: 24, sections: [build()] });
+const L = (n, id, name, theme, biome, build) => ({ id, name, theme, biome, height: 24, sections: [build()] });
 
 export const WORLD1 = {
   id: 'w1',
   name: 'Himmelsinseln',
   maps: [
-    L(1, 'w1-1', 'Der Aufbruch', 'day', l01),
-    L(2, 'w1-2', 'Wolkenpfad', 'morning', l02),
-    L(3, 'w1-3', 'Pilzhain', 'noon', l03),
-    L(4, 'w1-4', 'Sturmbrücken', 'afternoon', l04),
-    L(5, 'w1-5', 'Ruinenstadt', 'afternoon', l05),
-    L(6, 'w1-6', 'Uhrwerk-Inseln', 'golden', l06),
-    L(7, 'w1-7', 'Abendrot-Klippen', 'sunset', l07),
-    L(8, 'w1-8', 'Dornenlabyrinth', 'dusk', l08),
-    L(9, 'w1-9', 'Sternennacht', 'night', l09),
-    L(10, 'w1-10', 'Das Himmelstor', 'aurora', l10),
+    L(1, 'w1-1', 'Der Aufbruch', 'day', 'meadow', l01),
+    L(2, 'w1-2', 'Wolkenpfad', 'morning', 'blossom', l02),
+    L(3, 'w1-3', 'Pilzhain', 'noon', 'mushroom', l03),
+    L(4, 'w1-4', 'Sturmbrücken', 'afternoon', 'storm', l04),
+    L(5, 'w1-5', 'Ruinenstadt', 'afternoon', 'ruins', l05),
+    L(6, 'w1-6', 'Uhrwerk-Inseln', 'golden', 'clockwork', l06),
+    L(7, 'w1-7', 'Abendrot-Klippen', 'sunset', 'canyon', l07),
+    L(8, 'w1-8', 'Dornenlabyrinth', 'dusk', 'thorn', l08),
+    L(9, 'w1-9', 'Sternennacht', 'night', 'starlit', l09),
+    L(10, 'w1-10', 'Das Himmelstor', 'aurora', 'aurora', l10),
   ],
 };
