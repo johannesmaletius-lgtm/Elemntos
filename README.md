@@ -200,7 +200,8 @@ Ein neues Biom ist ein Eintrag in `biomes.js`.
 Für eine neue Welt eine Datei `world2.js` nach demselben Muster anlegen und in `main.js` bei `WORLD` ergänzen.
 Der `MapBuilder` hat Befehle wie `ground`, `island`, `plank`, `cloud`, `thorns`, `crumble`, `mover`, `wheel`,
 `circle`, `spring`, `updraft`, `wind`, `spitter`, `ghost`, `coins`, `arc`, `gem(x, y, element)`, `checkpoint`, `goal`,
-`mummy`, `mummyTall` (Koordinaten in Kacheln, Zeile 0 = oben, Höhe 24; Gegner in die Zeile direkt über dem Boden).
+`mummy`, `mummyTall`, `decor` (Koordinaten in Kacheln, Zeile 0 = oben, Höhe 24; Gegner in die Zeile direkt über dem Boden).
+Gegner und Deko liegen als eigene Objekte über dem Kachelraster – eine Münzreihe an derselben Stelle überschreibt sie nicht.
 Die Element-Geheimnisse gibt es fertig in `parts.js`. Mit `splice(x, n)` lässt sich mitten in ein
 Level ein neuer Abschnitt von `n` Kacheln einschieben – alles rechts davon rutscht mit (so wurden die
 Level 2–10 verlängert).
@@ -210,7 +211,7 @@ Level 2–10 verlängert).
 node tools/check_level.mjs --matrix        # alle Level: Ziel ohne Fähigkeit erreichbar? Jeder Element-
                                            # Kristall NUR mit seinem Element? (echte Spielphysik)
 node tools/check_level.mjs water --ability --map 3   # einzelne Figur/Level; zeigt Kristalle + Bestzeit
-node tools/ascii.mjs 3 200 300             # Level 4, Spalten 200-300 als Text (Plattformen, Speier, Geister)
+node tools/ascii.mjs 3 200 300             # Level 4, Spalten 200-300 als Text (Plattformen, Speier, Mumien, Geister, Deko)
 python3 tools/build_sprites.py             # Figuren neu zerlegen (nach Änderung der Bilder)
 node tools/build_preview.mjs               # Einzeldatei-Vorschau (nur Einzelspieler) nach dist/
                                            # braucht esbuild (npm i -g esbuild oder ESBUILD=/pfad/esbuild)

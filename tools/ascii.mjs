@@ -18,7 +18,10 @@ for (const m of lv.movers) {
   for (let k = 0; k < m.w; k++) if (rows[py]) rows[py][px + k] = 'P';
 }
 for (const e of lv.spitters) rows[e.y][e.x] = e.dir > 0 ? '}' : '{';
-for (const e of lv.enemySpawns) if (e.type === 'ghost') rows[e.y][e.x] = 'g';
+// Deko und Gegner liegen als Objekte ueber dem Raster
+const DECO = { tree: 'T', arch: 'A', pillar: 'i', bush: 'b', rock: 'r', waterfall: 'w' };
+for (const d of lv.decor) if (rows[d.y][d.x] === ' ') rows[d.y][d.x] = DECO[d.type] || '?';
+for (const e of lv.enemySpawns) rows[e.y][e.x] = e.type === 'ghost' ? 'g' : e.type === 'mummyTall' ? 'E' : 'e';
 let hdr1 = '', hdr2 = '';
 for (let x = x0; x <= x1; x++) { hdr1 += x % 10 === 0 ? String(Math.floor(x / 10) % 10) : ' '; hdr2 += String(x % 10); }
 console.log('    ' + hdr1); console.log('    ' + hdr2);

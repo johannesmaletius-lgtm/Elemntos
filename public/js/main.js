@@ -420,8 +420,10 @@ async function startGame({ net, players, myId, events = [], map = 0 }) {
   game.onGem = (g) => recordGem(levelDef.id, g.id);
   for (const p of players) if (p.id !== myId) game.addRemote(p.id, p.charId, p.name);
   state.game = game;
+  game.paused = true;     // erst nach dem Laden laufen lassen (Stoppuhr, Steuerung)
   await game.load();
   if (state.game !== game) return;
+  game.paused = false; game._last = 0;
   for (const ev of events) game.applyEvent(ev, true);
   if (events.length) { const r = game.respawnPoint(true); game.me.reset(r.x, r.y - 0.01); game._snapCamera(); }
   if (state.demo) state.demo = null;
@@ -435,13 +437,14 @@ async function startGame({ net, players, myId, events = [], map = 0 }) {
   setTimeout(() => $('#stick-hint').style.opacity = '0', 6000);
 }
 
-function stopGame() {
+// noDemo: direkt danach startet ein Level -> keine Hintergrund-Demo aufbauen
+function stopGame(noDemo = false) {
   if (state.game) { state.game = null; }
   stopMusic();
   $('#hud').classList.add('hidden');
   $('#touch').classList.add('hidden');
   $('#scr-wait').classList.add('hidden');
-  ensureDemo();
+  if (!noDemo) ensureDemo();
 }
 
 function setupHud(game) {
@@ -610,7 +613,7 @@ function onResize() {
 }
 window.addEventListener('resize', onResize);
 window.addEventListener('orientationchange', () => setTimeout(onResize, 200));
-document.addEventListener('visibilitychange', () => { if (document.hidden && state.game && !online() && !state.game.paused) openPause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && state.game && !online() && !state.game.paused && !state.screen) openPause(); });
 
 // ---------- Start ----------
 const params = new URLSearchParams(location.search);
