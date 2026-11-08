@@ -33,18 +33,31 @@ Fortschritt (geschaffte Level, Bestzeit, Kristalle) liegt im Browser (localStora
 
 ## Die 10 Level
 
-| # | Name | Tageszeit | Neu / Schwerpunkt |
-|---|---|---|---|
-| 1 | Der Aufbruch | Mittag | Grundlagen, Pilze, Fähren, Ruinenturm |
-| 2 | Wolkenpfad | Morgen | **Wolken** (von unten durchspringbar), Wolkentreppen, Bröckelwolken |
-| 3 | Pilzhain | Mittag | Pilz-Ketten über dem Abgrund, Pilztürme, Rankenkäfig |
-| 4 | Sturmbrücken | Nachmittag | **Seitenwind**: Rückenwind trägt, Gegenwind bremst |
-| 5 | Ruinenstadt | Nachmittag | **Feuerspeier** (Flammen im Takt), Turmhaus, Dächer |
-| 6 | Uhrwerk-Inseln | Goldene Stunde | **Riesenräder** (Kreisbahnen), **Geister-Mumien** |
-| 7 | Abendrot-Klippen | Abendrot | Wasserfälle, Aufwinde an Klippen, Gleitflug-Geheimnis |
-| 8 | Dornenlabyrinth | Dämmerung | Dornengänge mit niedriger Decke, Speier-Fähren |
-| 9 | Sternennacht | Nacht | leuchtende Wolkenwege, Mondrad, viele Geister |
-| 10 | Das Himmelstor | Polarlicht | Finale – alles zusammen |
+Jedes Level hat sein **eigenes Biom** – eigene Farben für Gras, Erde und Stein, eigene Bäume und
+Pflanzen, eigene Silhouetten am Horizont und eigene schwebende Partikel. Jedes Level dauert wie Level 1:
+ein perfekter Lauf **ca. 1 Minute**, ein normaler erster Durchgang mit Fehlversuchen **3–5 Minuten**.
+
+| # | Name | Tageszeit | Biom | Neu / Schwerpunkt |
+|---|---|---|---|---|
+| 1 | Der Aufbruch | Mittag | Blumenwiese – Eichen, Gänseblümchen, Schmetterlinge | Grundlagen, Pilze, Fähren, Ruinenturm |
+| 2 | Wolkenpfad | Morgen | Kirschblüten – rosa Bäume und Hügel, Blütenregen | **Wolken**, Wolkentreppen, Blütenbrücke, Wolkenbrücke |
+| 3 | Pilzhain | Mittag | Pilzwald – Riesenpilze, lila Erde, leuchtende Sporen | Pilz-Ketten, Sporen-Schlucht, Riesenpilz-Stufen |
+| 4 | Sturmbrücken | Nachmittag | Sturmhöhen – Schiefer, Wind-Kiefern, Windmühlen | **Seitenwind**, Windmühlen-Grat, Sturmgipfel |
+| 5 | Ruinenstadt | Nachmittag | Sandstein – Sand, Palmen, Stadt-Silhouette | **Feuerspeier**, Turmhaus, Marktdächer, Palasthof |
+| 6 | Uhrwerk-Inseln | Goldene Stunde | Messing – Messingplatten, goldene Bäume, drehende Zahnräder | **Riesenräder**, **Geister**, Zahnrad-Schlucht, Glockenturm |
+| 7 | Abendrot-Klippen | Abendrot | Rote Klippen – Gesteinsschichten, Ahorn, Herbstlaub | Wasserfälle, Aufwinde, Wasserfall-Pendel, Abendrot-Grat |
+| 8 | Dornenlabyrinth | Dämmerung | Dornendickicht – tote Dornenbäume, Glühwürmchen | Dornengänge, Speier-Klamm, Dornenkrone |
+| 9 | Sternennacht | Nacht | Mondkristalle – Kristallbäume, leuchtendes Gras | Leuchtwolken, Mondräder, Sternwarte, viele Geister |
+| 10 | Das Himmelstor | Polarlicht | Eisgipfel – Schnee, Eiszapfen, Schneetannen, Schneefall | Finale – alles zusammen, Eisfall-Kaskade |
+
+## Figuren
+
+Die vier Figuren haben einen dunklen **Umriss**, damit sie sich von jedem Hintergrund abheben, und einen
+**Schatten**, der auch beim Springen auf dem Boden darunter liegt. Jede Figur hat eigene **Element-Effekte**:
+Luft zieht kleine Windwirbel hinter sich her (beim Gleiten Luftstreifen an den Armen), Wasser verspritzt
+Tropfen und lässt Bläschen aufsteigen, Erde wirbelt Kiesel und Blätter auf, und aus der Flammenhand der
+Feuer-Figur steigt Glut. Auch Landungen sehen je Element anders aus. Nachts leuchten die Figuren in ihrer
+Elementfarbe und bekommen ein Randlicht.
 
 ## Gegner: Mumien
 
@@ -132,7 +145,7 @@ je nach Tastendruck, „Coyote-Time“ (Sprung kurz nach der Kante zählt noch) 
 12. **Ruinen-Tor** – Ziel
 
 Im Mehrspieler zählen Münzen, Kristalle und Checkpoints fürs ganze Team.
-Ein perfekter Lauf dauert je Level ca. 35–60 Sekunden, ein normaler erster Durchgang 2–5 Minuten.
+Ein perfekter Lauf dauert in jedem Level ca. 1 Minute, ein normaler erster Durchgang 3–5 Minuten.
 
 ## Projektaufbau
 
@@ -149,6 +162,7 @@ public/                 Das Spiel (reines HTML/JS, keine Build-Schritte)
   js/levels/world1.js   Welt 1: Liste der 10 Level mit Tageszeit
   js/levels/w1/l01..l10.js   die Level
   js/levels/parts.js    Bausteine (Wasser-Tunnel, Erd-Gewölbe, Feuer-Höhle, Luft-Wolke, Dornengrube)
+  js/biomes.js          Die 10 Biome (Farben, Bäume, Pflanzen, Silhouetten, Partikel)
   js/tiles.js, background.js, entities.js   Prozedurale Pixel-Grafik, Tageszeiten, Wasserfälle, Speier
   js/net.js             Mehrspieler-Client (WebSocket-Server oder Peer-to-Peer)
   js/room.js            Raum-Logik (vom Server und vom Gastgeber-Gerät benutzt)
@@ -163,18 +177,23 @@ tools/                  Hilfsprogramme (siehe unten)
 
 ### Neues Level oder neue Welt hinzufügen
 Eine Datei wie `public/js/levels/w1/l02.js` anlegen und in `world1.js` eintragen (mit Tageszeit:
-`day`, `morning`, `noon`, `afternoon`, `golden`, `sunset`, `dusk`, `night`, `aurora`).
+`day`, `morning`, `noon`, `afternoon`, `golden`, `sunset`, `dusk`, `night`, `aurora`, und Biom:
+`meadow`, `blossom`, `mushroom`, `storm`, `ruins`, `clockwork`, `canyon`, `thorn`, `starlit`, `aurora`).
+Ein neues Biom ist ein Eintrag in `biomes.js`.
 Für eine neue Welt eine Datei `world2.js` nach demselben Muster anlegen und in `main.js` bei `WORLD` ergänzen.
 Der `MapBuilder` hat Befehle wie `ground`, `island`, `plank`, `cloud`, `thorns`, `crumble`, `mover`, `wheel`,
 `circle`, `spring`, `updraft`, `wind`, `spitter`, `ghost`, `coins`, `arc`, `gem(x, y, element)`, `checkpoint`, `goal`,
 `mummy`, `mummyTall` (Koordinaten in Kacheln, Zeile 0 = oben, Höhe 24; Gegner in die Zeile direkt über dem Boden).
-Die Element-Geheimnisse gibt es fertig in `parts.js`.
+Die Element-Geheimnisse gibt es fertig in `parts.js`. Mit `splice(x, n)` lässt sich mitten in ein
+Level ein neuer Abschnitt von `n` Kacheln einschieben – alles rechts davon rutscht mit (so wurden die
+Level 2–10 verlängert).
 
 ### Hilfsprogramme
 ```bash
 node tools/check_level.mjs --matrix        # alle Level: Ziel ohne Fähigkeit erreichbar? Jeder Element-
                                            # Kristall NUR mit seinem Element? (echte Spielphysik)
 node tools/check_level.mjs water --ability --map 3   # einzelne Figur/Level; zeigt Kristalle + Bestzeit
+node tools/ascii.mjs 3 200 300             # Level 4, Spalten 200-300 als Text (Plattformen, Speier, Geister)
 python3 tools/build_sprites.py             # Figuren neu zerlegen (nach Änderung der Bilder)
 node tools/build_preview.mjs               # Einzeldatei-Vorschau (nur Einzelspieler) nach dist/
                                            # braucht esbuild (npm i -g esbuild oder ESBUILD=/pfad/esbuild)

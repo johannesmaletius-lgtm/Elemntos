@@ -130,7 +130,7 @@ export default function build() {
     b.decor('b', x + 34, 7); b.mummyTall(x + 38, 7);
     b.coins(x + 34, x + 37, 7);
     b.cloud(x + 44, x + 47, 11); b.cloud(x + 51, x + 54, 14); b.cloud(x + 57, x + 60, 17);
-    b.arc(x + 40, x + 44, 9, 1); b.arc(x + 47, x + 51, 12, 1); b.arc(x + 54, x + 57, 15, 1);
+    b.arc(x + 41, x + 44, 9, 1); b.arc(x + 47, x + 51, 12, 1); b.arc(x + 54, x + 57, 15, 1);
     b.ground(x + 62, x + 99, 19);
     b.decor('T', x + 64, 18); b.decor('b', x + 72, 18); b.decor('T', x + 82, 18); b.decor('r', x + 90, 18);
     b.mummy(x + 69, 18); b.mummy(x + 86, 18); b.mummyTall(x + 94, 18);

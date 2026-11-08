@@ -126,5 +126,53 @@ export default function build() {
   b.goal(432, 14);
   b.decor('T', 442, 14);
 
+  // ===== Neu (eingeschoben, von rechts nach links): =====
+  // B) Abendrot-Grat: zwei Aufwinde an Klippen, Wolken hinab (vor dem Tor, Hoehe 15)
+  {
+    const x = 386;
+    b.splice(x, 80);
+    b.ground(x, x + 5, 15);
+    b.checkpoint(x + 2, 14);
+    b.updraft(x + 8, x + 11, 9, 21);
+    b.coins(x + 9, x + 10, 12);
+    b.ground(x + 13, x + 20, 8);
+    b.decor('w', x + 21, 8); b.mummy(x + 18, 7);
+    b.coins(x + 13, x + 16, 7);
+    b.island(x + 25, x + 29, 10, 2); b.coins(x + 25, x + 29, 9);
+    b.updraft(x + 32, x + 35, 6, 21);
+    b.coins(x + 33, x + 34, 10);
+    b.ground(x + 37, x + 44, 7);
+    b.decor('i', x + 42, 6); b.coins(x + 37, x + 41, 6);
+    b.cloud(x + 48, x + 51, 11); b.cloud(x + 54, x + 57, 14);
+    b.arc(x + 45, x + 48, 8, 1); b.coins(x + 54, x + 57, 13);
+    b.ghost(x + 52, 9, x + 46, x + 58);
+    pit(b, x + 6, x + 57);
+    b.ground(x + 58, x + 79, 15);
+    b.decor('T', x + 62, 14); b.decor('b', x + 71, 14);
+    b.mummyTall(x + 67, 14); b.mummy(x + 76, 14);
+    b.coins(x + 72, x + 75, 13);
+  }
+  // A) Wasserfall-Pendel: Pendelfaehre, Pilz zur Hochinsel, Broeckelstein (nach dem Klippenweg)
+  {
+    const x = 366;
+    b.splice(x, 80);
+    b.ground(x, x + 4, 19);
+    b.mover(3, [[x + 6, 17], [x + 13, 13], [x + 20, 17]], 2.4);
+    b.coins(x + 8, x + 18, 12);
+    b.island(x + 24, x + 28, 15, 2);
+    b.decor('w', x + 29, 15); b.spring(x + 27, 14);
+    b.island(x + 31, x + 38, 7, 2);
+    b.mummy(x + 36, 6); b.coins(x + 31, x + 34, 6);
+    b.cloud(x + 42, x + 45, 12); b.crumble(x + 49, x + 51, 15);
+    b.coins(x + 42, x + 45, 11); b.coins(x + 49, x + 51, 14);
+    b.ghost(x + 46, 10, x + 40, x + 52);
+    pit(b, x + 5, x + 55);
+    b.ground(x + 56, x + 79, 19);
+    b.checkpoint(x + 59, 18);
+    b.spitter(x + 70, 18, -1, 2.4, 0.4, 6.5, 8);
+    b.coins(x + 63, x + 68, 16);
+    b.mummy(x + 76, 18); b.decor('r', x + 73, 18);
+  }
+
   return b.section('Abendrot-Klippen');
 }

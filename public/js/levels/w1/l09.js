@@ -106,5 +106,55 @@ export default function build() {
   b.goal(424, 18);
   b.decor('T', 433, 18);
 
+  // ===== Neu (eingeschoben, von rechts nach links): =====
+  // B) Sternwarte: Aufwinde, zweites Mondrad, Geister (vor dem Sternentor)
+  {
+    const x = 385;
+    b.splice(x, 85);
+    b.ground(x, x + 5, 19);
+    b.checkpoint(x + 2, 18);
+    b.updraft(x + 7, x + 10, 8, 20);
+    b.coins(x + 8, x + 9, 14); b.coins(x + 8, x + 9, 11);
+    b.cloud(x + 13, x + 16, 9); b.coins(x + 13, x + 16, 8);
+    b.ghost(x + 18, 6, x + 14, x + 22);
+    b.wheel(x + 25, 12, 4, 3, 3, 2.0, 1);
+    b.coins(x + 24, x + 26, 6);
+    b.island(x + 33, x + 40, 10, 2);
+    b.mummy(x + 38, 9); b.coins(x + 33, x + 36, 9);
+    b.updraft(x + 43, x + 46, 7, 20);
+    b.coins(x + 44, x + 45, 12);
+    b.cloud(x + 49, x + 52, 8); b.cloud(x + 55, x + 58, 12);
+    b.coins(x + 49, x + 52, 7); b.coins(x + 55, x + 58, 11);
+    pit(b, x + 6, x + 58);
+    b.ground(x + 59, x + 84, 19);
+    b.decor('A', x + 66, 18); b.decor('b', x + 81, 18);
+    b.mummyTall(x + 70, 18);
+    b.ghost(x + 77, 15, x + 72, x + 82);
+    b.coins(x + 61, x + 64, 17); b.coins(x + 73, x + 80, 17);
+  }
+  // A) Leuchtwolken und Geisterfaehre (nach der Wolkenmeer-Landung)
+  {
+    const x = 120;
+    b.splice(x, 85);
+    b.ground(x, x + 3, 19);
+    b.cloud(x + 5, x + 8, 17); b.cloud(x + 12, x + 15, 14);
+    b.ghost(x + 17, 12, x + 14, x + 21);
+    b.mover(3, [[x + 19, 12], [x + 27, 8]], 2.4);
+    b.island(x + 31, x + 37, 8, 2);
+    b.mummy(x + 35, 7);
+    b.circle(3, x + 44, 11, 3, 2.0, 0, -1);
+    b.cloud(x + 50, x + 53, 13);
+    b.ghost(x + 52, 10, x + 47, x + 57);
+    b.cloud(x + 56, x + 59, 16);
+    b.coins(x + 5, x + 8, 16); b.coins(x + 12, x + 15, 13); b.coins(x + 20, x + 28, 7); b.coins(x + 31, x + 34, 7);
+    b.coins(x + 43, x + 45, 6); b.coins(x + 50, x + 53, 12); b.coins(x + 56, x + 59, 15);
+    pit(b, x + 4, x + 60);
+    b.ground(x + 61, x + 84, 19);
+    b.checkpoint(x + 64, 18);
+    b.decor('T', x + 78, 18); b.decor('r', x + 70, 18);
+    b.mummy(x + 73, 18);
+    b.coins(x + 66, x + 69, 17);
+  }
+
   return b.section('Sternennacht');
 }

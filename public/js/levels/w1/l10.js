@@ -44,7 +44,7 @@ export default function build() {
   b.wheel(161, 10, 4, 3, 3, 2.1, -1);
   b.spitter(172, 10, -1, 2.8, 1.0);       // Speier ueber den Raedern
   b.stone(172, 175, 11, 23);
-  b.coins(145, 147, 7); b.coins(160, 162, 5); b.coins(172, 175, 10);
+  b.coins(145, 147, 7); b.coins(160, 162, 5); b.coins(173, 175, 10);
   b.island(179, 189, 13, 3);
   b.mummy(184, 12);
   // LUFT: Wolke hoch ueber der Insel
@@ -129,6 +129,36 @@ export default function build() {
   b.mummyTall(494, 12);
   b.goal(508, 12);
   b.decor('T', 515, 12);
+
+  // ===== Neu (eingeschoben): Eisfall-Kaskade – Rueckenwind-Sprung, Aufwind mit
+  // Seitenwind, Speier-Insel, Riesenrad, Geist und Boden-Speier (nach den Speier-Ruinen)
+  {
+    const x = 324;
+    b.splice(x, 110);
+    b.ground(x, x + 5, 19);
+    b.checkpoint(x + 2, 18);
+    b.wind(x + 6, x + 15, 10, 18, 1);
+    b.arc(x + 5, x + 16, 14, 3);
+    b.island(x + 16, x + 22, 18, 2);
+    b.mummy(x + 20, 17);
+    b.updraft(x + 25, x + 28, 8, 20);
+    b.coins(x + 26, x + 27, 14); b.coins(x + 26, x + 27, 11);
+    b.wind(x + 29, x + 44, 4, 8, 1);
+    b.cloud(x + 32, x + 35, 9); b.cloud(x + 40, x + 43, 9);
+    b.coins(x + 32, x + 35, 8); b.coins(x + 40, x + 43, 8);
+    b.island(x + 47, x + 54, 9, 3);
+    b.spitter(x + 54, 8, 1, 2.6, 0.8, 6.5, 10);
+    b.coins(x + 48, x + 52, 8);
+    b.wheel(x + 62, 12, 4, 3, 3, 2.1, -1);
+    b.coins(x + 61, x + 63, 6);
+    pit(b, x + 6, x + 70);
+    b.ground(x + 71, x + 109, 19);
+    b.decor('T', x + 74, 18); b.decor('b', x + 83, 18); b.decor('i', x + 106, 18);
+    b.mummy(x + 78, 18); b.mummyTall(x + 96, 18);
+    b.ghost(x + 88, 15, x + 84, x + 92);
+    b.spitter(x + 102, 18, -1, 2.2, 0.6, 6.5, 9);
+    b.coins(x + 85, x + 91, 17); b.coins(x + 98, x + 101, 15);
+  }
 
   return b.section('Das Himmelstor');
 }

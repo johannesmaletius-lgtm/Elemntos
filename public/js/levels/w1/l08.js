@@ -112,5 +112,52 @@ export default function build() {
   b.goal(424, 18);
   b.decor('T', 433, 18);
 
+  // ===== Neu (eingeschoben, von rechts nach links): =====
+  // B) Dornenkrone: zweiter niedriger Dornengang, Dornenbeete mit Trittsteinen und Geist (vor dem Tor)
+  {
+    const x = 373;
+    b.splice(x, 85);
+    b.ground(x, x + 84, 19);
+    b.checkpoint(x + 2, 18);
+    b.stone(x + 8, x + 40, 11, 13);
+    b.ceilThorns(x + 9, x + 39, 14);
+    b.thorns(x + 14, x + 15, 18); b.thorns(x + 21, x + 21, 18); b.thorns(x + 27, x + 29, 18); b.thorns(x + 35, x + 36, 18);
+    b.coins(x + 10, x + 13, 17); b.coins(x + 17, x + 19, 17); b.coins(x + 23, x + 25, 17); b.coins(x + 31, x + 33, 17); b.coins(x + 38, x + 40, 17);
+    b.mummy(x + 24, 18);
+    b.coins(x + 10, x + 38, 10);
+    b.thorns(x + 45, x + 52, 18); b.island(x + 48, x + 49, 16, 1);
+    b.ghost(x + 49, 13, x + 44, x + 54);
+    b.coins(x + 48, x + 49, 15);
+    b.thorns(x + 60, x + 66, 18); b.crumble(x + 62, x + 64, 16);
+    b.coins(x + 62, x + 64, 15);
+    b.decor('A', x + 76, 18);
+    b.mummyTall(x + 71, 18); b.mummy(x + 81, 18);
+    b.coins(x + 68, x + 70, 17);
+  }
+  // A) Speier-Klamm: Faehren, Speier auf Saeulen, Aufzug zur Hochinsel (vor der Windschneise)
+  {
+    const x = 230;
+    b.splice(x, 85);
+    b.ground(x, x + 4, 19);
+    b.mover(3, [[x + 6, 17], [x + 13, 17]], 2.4);
+    b.stone(x + 17, x + 19, 14, 23);
+    b.spitter(x + 19, 13, 1, 2.8, 0.6, 6.5, 12);
+    b.mover(3, [[x + 21, 16], [x + 28, 16]], 2.6);
+    b.stone(x + 32, x + 34, 12, 23);
+    b.mover(2, [[x + 37, 14], [x + 37, 7]], 2.0);
+    b.island(x + 41, x + 48, 8, 2);
+    b.mummy(x + 46, 7);
+    b.ghost(x + 44, 5, x + 41, x + 49);
+    b.plank(x + 52, x + 55, 12); b.plank(x + 58, x + 60, 15);
+    b.coins(x + 7, x + 14, 15); b.coins(x + 17, x + 18, 13); b.coins(x + 22, x + 29, 14); b.coins(x + 32, x + 34, 11);
+    b.coins(x + 41, x + 44, 7); b.coins(x + 52, x + 55, 11); b.coins(x + 58, x + 60, 14);
+    pit(b, x + 5, x + 60);
+    b.ground(x + 61, x + 84, 19);
+    b.checkpoint(x + 64, 18);
+    b.thorns(x + 70, x + 71, 18); b.thorns(x + 77, x + 78, 18);
+    b.coins(x + 69, x + 72, 16); b.coins(x + 76, x + 79, 16);
+    b.mummy(x + 74, 18); b.decor('b', x + 82, 18);
+  }
+
   return b.section('Dornenlabyrinth');
 }

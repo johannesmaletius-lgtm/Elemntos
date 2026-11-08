@@ -126,7 +126,7 @@ export default function build() {
     b.mummy(x + 104, 18); b.mummy(x + 114, 18);
     b.decor('r', x + 91, 18); b.decor('b', x + 117, 18);
   }
-  // A) Kirschbluetenterrassen und Wolkenaufzug (nach der Ruineninsel)
+  // A) Kirschbluetenterrassen und Bluetenbruecke (nach der Ruineninsel)
   {
     const x = 105;
     b.splice(x, 130);
@@ -142,14 +142,14 @@ export default function build() {
     b.checkpoint(x + 55, 18);
     b.decor('A', x + 61, 18); b.mummy(x + 66, 18);
     b.coins(x + 58, x + 64, 17);
-    // Wolkenaufzug: Faehre nach oben, Wolkenweg hoch ueber der Grube
-    b.mover(2, [[x + 72, 18], [x + 72, 9]], 2.1);
-    b.coins(x + 72, x + 73, 13);
-    b.cloud(x + 76, x + 80, 9); b.cloud(x + 84, x + 87, 8);
-    b.island(x + 91, x + 98, 9, 3);
-    b.decor('b', x + 92, 8); b.mummy(x + 96, 8);
-    b.cloud(x + 102, x + 105, 12); b.cloud(x + 108, x + 111, 15);
-    b.coins(x + 76, x + 80, 8); b.coins(x + 84, x + 87, 7); b.arc(x + 98, x + 102, 9, 1); b.arc(x + 105, x + 108, 12, 1);
+    // Bluetenbruecke: Stege mit Broeckelstuecken ueber der Grube, oben Wolken mit Muenzen
+    b.plank(x + 72, x + 79, 17); b.crumble(x + 80, x + 83, 17);
+    b.plank(x + 84, x + 90, 17); b.crumble(x + 91, x + 94, 17);
+    b.plank(x + 95, x + 104, 17); b.cloud(x + 108, x + 111, 18);
+    b.mummy(x + 88, 16); b.mummy(x + 101, 16);
+    b.cloud(x + 81, x + 84, 12); b.cloud(x + 92, x + 95, 11);
+    b.coins(x + 73, x + 78, 16); b.coins(x + 80, x + 83, 15); b.coins(x + 91, x + 94, 15);
+    b.coins(x + 81, x + 84, 11); b.coins(x + 92, x + 95, 10); b.coins(x + 108, x + 111, 17);
     pit(b, x + 71, x + 113);
     b.ground(x + 114, x + 129, 19);
     b.mummy(x + 121, 18); b.coins(x + 116, x + 119, 17);
