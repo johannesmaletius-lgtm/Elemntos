@@ -174,6 +174,8 @@ export class Player {
     const prevGround = this.onGround;
     const impactV = this.vy;
     this._moveX(this.vx * dt, game);
+    this.wind = this._windAt(lv);
+    if (this.wind) this._moveX(this.wind * PHYS.windSpeed * dt, game, true);
     this._moveY(this.vy * dt, game);
     this._groundProbe(game);
 
@@ -280,8 +282,9 @@ export class Player {
     game.netFx({ k: 'shock', x: this.x, y: this.y });
   }
 
-  _moveX(dx, game) {
-    if (dx === 0) return;
+  // push = Verschiebung von aussen (Wind, Kamera): Tempo bleibt erhalten
+  _moveX(dx, game, push = false) {
+    if (dx === 0) return false;
     const lv = game.level;
     this.x += dx;
     const t = this.top + EPS, b = this.y - EPS;
@@ -290,8 +293,9 @@ export class Player {
       for (let ty = Math.floor(t); ty <= Math.floor(b); ty++) {
         if (lv.solid(tx, ty)) {
           this.x = tx - this.w / 2 - EPS;
+          if (push) return true;
           if (this.dashT > 0) this.dashT = 0;
-          this.vx = 0; return;
+          this.vx = 0; return true;
         }
       }
     } else {
@@ -299,11 +303,23 @@ export class Player {
       for (let ty = Math.floor(t); ty <= Math.floor(b); ty++) {
         if (lv.solid(tx, ty)) {
           this.x = tx + 1 + this.w / 2 + EPS;
+          if (push) return true;
           if (this.dashT > 0) this.dashT = 0;
-          this.vx = 0; return;
+          this.vx = 0; return true;
         }
       }
     }
+    return false;
+  }
+
+  _windAt(lv) {
+    let w = 0;
+    for (let ty = Math.floor(this.top); ty <= Math.floor(this.y - EPS); ty++)
+      for (let tx = Math.floor(this.left); tx <= Math.floor(this.right - EPS); tx++) {
+        const d = lv.windAt(tx, ty);
+        if (d) w = d;
+      }
+    return w;
   }
 
   _moveY(dy, game) {
@@ -321,7 +337,7 @@ export class Player {
       for (const pl of game.platforms()) {
         if (this.right <= pl.x + EPS || this.left >= pl.x + pl.w - EPS) continue;
         const top = pl.y;
-        if (prevB <= top + 0.02 + Math.max(0, pl.dy || 0) && this.y >= top) {
+        if (prevB <= top + 0.02 + Math.abs(pl.dy || 0) && this.y >= top) {
           if (!best || top < best.y) best = { y: top, ride: pl };
         }
       }

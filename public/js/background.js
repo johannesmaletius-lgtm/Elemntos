@@ -105,8 +105,34 @@ function makeSeaBand(seed, w, h, tint) {
   return b.toCanvas();
 }
 
+// Tageszeiten: sky = gewuenschte End-Farben des Himmels, tint = Licht, mit dem
+// am Ende die ganze Szene multipliziert wird (Abendrot, Nacht ...).
+export const THEMES = {
+  day: { label: 'Mittag', sky: ['#0a7ff5', '#2fa4fb', '#71c6ff', '#b2e1ff'] },
+  morning: { label: 'Morgen', sky: ['#3c8ef0', '#73bbf6', '#bfe3fb', '#ffe6cc'], tint: '#fff7ef', sun: { x: 0.18, y: 0.62, r: 2.2, c: '#fff6d8' } },
+  noon: { label: 'Mittag', sky: ['#0570ea', '#2b9ef9', '#6ec5ff', '#c9eeff'] },
+  afternoon: { label: 'Nachmittag', sky: ['#2d7fe0', '#5aa8ef', '#a6d0f2', '#ffdcae'], tint: '#fff2e0' },
+  golden: { label: 'Goldene Stunde', sky: ['#3970c8', '#7ea9de', '#f3cf9c', '#ffb47c'], tint: '#ffeacf', sun: { x: 0.78, y: 0.6, r: 2.6, c: '#fff1c4' } },
+  sunset: { label: 'Abendrot', sky: ['#3a4fa8', '#b56a9e', '#ff9a6a', '#ffd28a'], tint: '#ffdcc8', sun: { x: 0.7, y: 0.7, r: 3.2, c: '#fff0b0' } },
+  dusk: { label: 'Dämmerung', sky: ['#1d2350', '#4d3a78', '#b85c7c', '#f0a07c'], tint: '#d2bfe0', stars: 0.4, glow: true },
+  night: { label: 'Nacht', sky: ['#060a22', '#101a46', '#22306c', '#3d5596'], tint: '#9aa9d8', stars: 1, moon: { x: 0.8, y: 0.2 }, glow: true },
+  aurora: { label: 'Polarlicht', sky: ['#040a1e', '#0b1a3e', '#1a3462', '#2e5a8a'], tint: '#a3b6dc', stars: 1, aurora: true, glow: true },
+};
+
+function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+// Himmelsfarbe so waehlen, dass sie nach dem Multiplizieren mit tint stimmt
+function preTint(col, tint) {
+  if (!tint) return col;
+  const c = hexRgb(col), t = hexRgb(tint);
+  return `rgb(${c.map((v, i) => Math.min(255, Math.round(v * 255 / Math.max(1, t[i])))).join(',')})`;
+}
+
 export class Background {
-  constructor() {
+  constructor(theme = 'day') {
+    this.theme = THEMES[theme] || THEMES.day;
+    const rnd = mulberry32(77);
+    this.stars = [];
+    if (this.theme.stars) for (let i = 0; i < 140 * this.theme.stars; i++) this.stars.push([rnd(), rnd() * 0.7, 0.5 + rnd() * 1.2, rnd() * 6]);
     this.clouds = [];
     for (let i = 0; i < 6; i++) this.clouds.push(makeCloud(10 + i, 48 + i * 10, 22 + (i % 3) * 6, i % 2));
     this.islands = [makeIsland(3, 110), makeIsland(8, 80), makeIsland(15, 140), makeIsland(21, 64)];
@@ -121,10 +147,11 @@ export class Background {
     const c = makeCanvas(1, h);
     const g = c.getContext('2d');
     const grd = g.createLinearGradient(0, 0, 0, h);
-    grd.addColorStop(0, '#0a7ff5');
-    grd.addColorStop(0.45, '#2fa4fb');
-    grd.addColorStop(0.8, '#71c6ff');
-    grd.addColorStop(1, '#b2e1ff');
+    const th = this.theme, sky = th.sky.map(c => preTint(c, th.tint));
+    grd.addColorStop(0, sky[0]);
+    grd.addColorStop(0.45, sky[1]);
+    grd.addColorStop(0.8, sky[2]);
+    grd.addColorStop(1, sky[3]);
     g.fillStyle = grd; g.fillRect(0, 0, 1, h);
     this.sky = c; this.skyH = h;
     return c;
@@ -135,6 +162,7 @@ export class Background {
     ctx.drawImage(this._skyGradient(ctx, H), 0, 0, W, H);
     const k = s / TS; // Art-Pixel -> Bildschirm
     const lvH = level.h;
+    this._sky(ctx, camX, camY, s, W, H, time);
     // ferne Inseln
     {
       const p = 0.12, spacing = 38;
@@ -182,6 +210,71 @@ export class Background {
     }
     // Wolkenmeer hinten
     this._band(ctx, this.seaBack, (camX * 0.55 + time * 0.3) * s, (lvH - 3.2 - camY) * s, k * 1.2, W, H);
+  }
+
+  _sky(ctx, camX, camY, s, W, H, time) {
+    const th = this.theme;
+    // Sterne
+    if (this.stars.length) {
+      for (const [sx, sy, r, ph] of this.stars) {
+        const x = ((sx * W * 1.3 - camX * s * 0.02) % (W * 1.3) + W * 1.3) % (W * 1.3) - W * 0.15;
+        const y = sy * H - camY * s * 0.02;
+        const a = 0.55 + 0.45 * Math.sin(time * 1.7 + ph * 3);
+        ctx.fillStyle = `rgba(255,255,240,${a})`;
+        const z = Math.max(1, r * s / 28);
+        ctx.fillRect(Math.round(x), Math.round(y), Math.ceil(z), Math.ceil(z));
+      }
+    }
+    // Polarlicht: weiche, wehende Baender
+    if (th.aurora) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const bands = [['80,255,190', 0.16, 0.0], ['90,200,255', 0.12, 1.7], ['200,120,255', 0.1, 3.1]];
+      for (const [col, a, off] of bands) {
+        const y0 = H * (0.12 + off * 0.03);
+        ctx.beginPath();
+        for (let i = 0; i <= 32; i++) {
+          const x = (i / 32) * W;
+          const y = y0 + Math.sin(i * 0.45 + time * 0.35 + off) * H * 0.05 + Math.sin(i * 0.17 - camX * 0.01 + off) * H * 0.04;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        for (let i = 32; i >= 0; i--) {
+          const x = (i / 32) * W;
+          const y = y0 + H * 0.2 + Math.sin(i * 0.3 + time * 0.25 + off) * H * 0.04;
+          ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        const g = ctx.createLinearGradient(0, y0 - H * 0.05, 0, y0 + H * 0.25);
+        g.addColorStop(0, `rgba(${col},0)`); g.addColorStop(0.35, `rgba(${col},${a})`); g.addColorStop(1, `rgba(${col},0)`);
+        ctx.fillStyle = g; ctx.fill();
+      }
+      ctx.restore();
+    }
+    // Sonne / Mond
+    const body = th.sun || th.moon;
+    if (body) {
+      const x = body.x * W - camX * s * 0.01, y = body.y * H - camY * s * 0.03;
+      const r = (body.r || 1.3) * s;
+      const g = ctx.createRadialGradient(x, y, r * 0.4, x, y, r * 3.2);
+      g.addColorStop(0, th.sun ? 'rgba(255,240,200,0.55)' : 'rgba(220,230,255,0.35)'); g.addColorStop(1, 'rgba(255,240,200,0)');
+      ctx.fillStyle = g; ctx.fillRect(x - r * 3.2, y - r * 3.2, r * 6.4, r * 6.4);
+      ctx.fillStyle = th.sun ? th.sun.c : '#f4f6ff';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      if (th.moon) {
+        ctx.fillStyle = 'rgba(160,170,210,0.45)';
+        for (const [dx, dy, rr] of [[-0.3, -0.2, 0.22], [0.25, 0.3, 0.16], [0.1, -0.45, 0.1]]) { ctx.beginPath(); ctx.arc(x + dx * r, y + dy * r, rr * r, 0, Math.PI * 2); ctx.fill(); }
+      }
+    }
+  }
+
+  // Licht der Tageszeit ueber die ganze Szene legen
+  drawTint(ctx, W, H) {
+    if (!this.theme.tint) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = this.theme.tint;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
   }
 
   drawFront(ctx, camX, camY, s, W, H, level, time) {

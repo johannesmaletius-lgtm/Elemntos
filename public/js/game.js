@@ -1,6 +1,6 @@
 // Spielablauf: Schleife, Kamera, Objekte, geteilte Ereignisse (fuer Mehrspieler),
 // Rendering. Ein Game-Objekt = ein laufendes Level.
-import { PHYS, VIEW_TILES_Y, MIN_VIEW_TILES_X, CHARACTERS } from './config.js';
+import { PHYS, VIEW_TILES_Y, MIN_VIEW_TILES_X, MAX_VIEW_TILES_Y, CHARACTERS, GEM_COLORS } from './config.js';
 import { Level, T } from './level.js';
 import { TileRenderer } from './tiles.js';
 import { Background } from './background.js';
@@ -13,6 +13,10 @@ import { createEnemies, updateEnemies, hitEnemy, enemyPose, drawEnemy, ENEMY_TYP
 import { sfx } from './audio.js';
 import { clamp } from './util.js';
 
+// Mitspieler: Zustand kommt 25x pro Sekunde uebers Netz. Damit die Figur trotz
+// schwankender Verbindung fluessig laeuft, wird mit einer an die gemessene
+// Verzoegerung angepassten Pufferzeit interpoliert, bei Luecken kurz
+// vorausberechnet und die Anzeige weich nachgefuehrt.
 export class RemotePlayer {
   constructor(id, charId, name) {
     this.id = id; this.charId = charId; this.name = name;
@@ -22,39 +26,77 @@ export class RemotePlayer {
     this.dashT = 0; this.throwT = 0; this.pound = null; this.flipT = 0; this.flipDur = 0.36; this.invuln = 0; this.deadT = 0;
     this.buf = []; this.anim = createAnimState(); this.dx = 0; this.dy = 0;
     this.coins = 0; this.deaths = 0; this.remote = true; this.seen = false;
+    this.lag = null; this.delay = 120; this.safe = null; this.lastArrive = 0;
+    this.tx = 0; this.ty = 0;
   }
   get left() { return this.x - this.w / 2; }
   get right() { return this.x + this.w / 2; }
   get top() { return this.y - this.h; }
-  push(t, s) {
-    this.buf.push({ t, s });
-    if (this.buf.length > 30) this.buf.shift();
-    if (!this.seen) { this.seen = true; this._apply(s, s, 0); }
+  push(t, s, arrive) {
+    const B = this.buf;
+    if (B.length && t <= B[B.length - 1].t) {
+      // Paket kam verspaetet (ungeordneter Kanal): einsortieren oder verwerfen
+      if (t <= B[0].t || B.some(b => b.t === t)) return;
+      let i = B.length - 1;
+      while (i > 0 && B[i - 1].t > t) i--;
+      B.splice(i, 0, { t, s });
+    } else B.push({ t, s });
+    if (B.length > 40) B.shift();
+    if (arrive !== undefined) {
+      const lag = arrive - t;
+      if (this.lag === null) this.lag = lag;
+      else if (lag > this.lag) this.lag += (lag - this.lag) * 0.3;   // schnell hoch
+      else this.lag += (lag - this.lag) * 0.015;                     // langsam runter
+      this.lastArrive = arrive;
+    }
+    if (!this.seen) { this.seen = true; this._state(s); this.x = this.tx; this.y = this.ty; }
   }
-  _apply(a, b, k) {
-    const nx = a[0] + (b[0] - a[0]) * k, ny = a[1] + (b[1] - a[1]) * k;
-    // Teleport (Respawn) nicht interpolieren
-    if (Math.abs(b[0] - a[0]) > 4 || Math.abs(b[1] - a[1]) > 4) { this.dx = 0; this.dy = 0; this.x = b[0]; this.y = b[1]; }
-    else { this.dx = nx - this.x; this.dy = ny - this.y; this.x = nx; this.y = ny; }
+  _state(b, ex = 0) {
     this.vx = b[2]; this.vy = b[3]; this.facing = b[4];
     const f = b[5];
     this.onGround = !!(f & 1); this.gliding = !!(f & 2); this.skid = !!(f & 4); this.dead = !!(f & 8);
     this.finished = !!(f & 16); this.dashT = (f & 32) ? 0.1 : 0; this.throwT = (f & 64) ? 0.1 : 0;
     this.pound = b[6] === 1 ? 'windup' : b[6] === 2 ? 'slam' : null;
-    this.flipT = b[7]; this.invuln = b[8]; this.deadT = b[9];
+    this.flipT = b[7]; this.invuln = b[8]; this.deadT = b[9] + ex;
+    this.tx = b[0] + b[2] * ex;
+    this.ty = b[1] + (this.onGround || this.dead ? 0 : b[3] * ex);
   }
-  update(dt, renderT, time) {
+  update(dt, now, time, level) {
     const B = this.buf;
     if (B.length === 0) return;
+    // Pufferzeit: gemessene Verzoegerung + Sendeabstand + Reserve
+    const want = Math.max(70, Math.min(450, (this.lag ?? 80) + 55));
+    this.delay += (want - this.delay) * Math.min(1, dt * 1.5);
+    const rt = now - this.delay;
     let i = B.length - 1;
-    while (i > 0 && B[i - 1].t > renderT) i--;
-    if (i === 0 || B[i].t <= renderT) {
+    while (i > 0 && B[i - 1].t > rt) i--;
+    if (rt >= B[B.length - 1].t) {
+      // keine neueren Daten: kurz vorausberechnen (max. 0,15 s)
       const last = B[B.length - 1];
-      this._apply(last.s, last.s, 0);
+      this._state(last.s, Math.min(0.15, (rt - last.t) / 1000));
+    } else if (i === 0) {
+      this._state(B[0].s);
     } else {
       const a = B[i - 1], b = B[i];
-      const k = clamp((renderT - a.t) / Math.max(0.001, b.t - a.t), 0, 1);
-      this._apply(a.s, b.s, k);
+      const k = clamp((rt - a.t) / Math.max(0.001, b.t - a.t), 0, 1);
+      this._state(b.s);
+      if (Math.abs(b.s[0] - a.s[0]) < 4 && Math.abs(b.s[1] - a.s[1]) < 4) {
+        this.tx = a.s[0] + (b.s[0] - a.s[0]) * k;
+        this.ty = a.s[1] + (b.s[1] - a.s[1]) * k;
+      }
+    }
+    // Anzeige weich nachfuehren, Teleport (Respawn) sofort
+    const ox = this.x, oy = this.y;
+    if (Math.abs(this.tx - this.x) > 3 || Math.abs(this.ty - this.y) > 3) { this.x = this.tx; this.y = this.ty; this.dx = 0; this.dy = 0; }
+    else {
+      const k = 1 - Math.exp(-dt * 28);
+      this.x += (this.tx - this.x) * k; this.y += (this.ty - this.y) * k;
+      this.dx = this.x - ox; this.dy = this.y - oy;
+    }
+    // letzter sicherer Bodenpunkt (fuer Wiedereinstieg der anderen)
+    if (level && this.onGround && !this.dead && !this.finished) {
+      const tx = Math.floor(this.tx), fy = Math.floor(this.ty + 0.05);
+      if ((level.solid(tx, fy) || level.oneway(tx, fy)) && !level.solid(tx, fy - 1) && level.get(tx, fy - 1) !== T.THORN_UP) this.safe = { x: tx + 0.5, y: fy };
     }
     updateAnim(this.anim, this, dt, time);
   }
@@ -68,7 +110,7 @@ export class Game {
     this.worldDef = worldDef;
     this.level = new Level(levelDef);
     this.tiles = new TileRenderer(this.level);
-    this.bg = new Background();
+    this.bg = new Background(levelDef.theme);
     this.fxp = new Particles();
     this.net = net || null;
     this.onFinish = onFinish;
@@ -82,6 +124,8 @@ export class Game {
     this.levelTime = 0;     // Stoppuhr
     this.startClock = null; // fuer synchronisierte Plattformen
     this.cam = { x: 0, y: 0, look: 0 };
+    this.zoom = 1; this.zoomT = 1; this._stuckT = 0;
+    this.flames = [];
     this.shakeT = 0; this.shakeA = 0;
     this.paused = false;
     this.ended = false;
@@ -165,16 +209,33 @@ export class Game {
     if (p === this.me) { this.shake(0.2, 0.12); navigator.vibrate?.(60); }
   }
 
-  respawnPoint() {
+  respawnPoint(team = false) {
+    let r = { ...this.level.start };
     if (this.respawnCp >= 0) {
       const cp = this.level.checkpoints[this.respawnCp];
-      return { x: cp.x, y: cp.y };
+      r = { x: cp.x, y: cp.y };
     }
-    return { ...this.level.start };
+    if (team) {
+      // Mehrspieler: liegt der Checkpoint nicht im Bild, beim vordersten Mitspieler einsteigen
+      const mates = this._mates();
+      const inView = r.x > this.cam.x + 1 && r.x < this.cam.x + this.viewW - 1;
+      if (mates.length && !inView) {
+        const lead = mates.reduce((a, b) => (b.x > a.x ? b : a));
+        if (lead.safe) r = { ...lead.safe };
+      }
+    }
+    return r;
+  }
+
+  // aktive Mitspieler (im Spiel, nicht tot, nicht im Ziel)
+  _mates() {
+    const out = [];
+    for (const p of this.players.values()) if (p.remote && p.seen && !p.dead && !p.finished) out.push(p);
+    return out;
   }
 
   respawn(p) {
-    const r = this.respawnPoint();
+    const r = this.respawnPoint(!!this.net);
     const deaths = p.deaths, coins = p.coins;
     p.reset(r.x, r.y - 0.01);
     p.deaths = deaths; p.coins = coins;
@@ -206,10 +267,12 @@ export class Game {
         const g = lv.gems[ev.id];
         if (!g || g.taken) return;
         g.taken = true; this.teamGems++;
-        this.fxp.burst(g.x, g.y, 22, { speed: 4.5, color: ['#e3cdff', '#a873ff', '#ffffff'], life: 0.8, size: 0.16, type: 'star' });
-        this.fxp.add({ x: g.x, y: g.y, type: 'ring', size: 0.2, grow: 4, life: 0.5, color: '#e3cdff' });
+        if (this.onGem) this.onGem(g);
+        const G = GEM_COLORS[g.el] || GEM_COLORS.skill;
+        this.fxp.burst(g.x, g.y, 22, { speed: 4.5, color: [G.light, G.mid, '#ffffff'], life: 0.8, size: 0.16, type: 'star' });
+        this.fxp.add({ x: g.x, y: g.y, type: 'ring', size: 0.2, grow: 4, life: 0.5, color: G.light });
         this.sfx('gem');
-        this.toast(`Kristall gefunden! (${this.teamGems}/${lv.totalGems})`);
+        this.toast(`${G.name}-Kristall gefunden! (${this.teamGems}/${lv.totalGems})`);
         break;
       }
       case 'cp': {
@@ -305,6 +368,8 @@ export class Game {
 
   results() {
     return {
+      levelId: this.level.id,
+      gemIds: this.level.gems.filter(g => g.taken).map(g => g.id),
       time: this.me.finishTime ?? this.levelTime,
       coins: this.teamCoins, totalCoins: this.level.totalCoins,
       gems: this.teamGems, totalGems: this.level.totalGems,
@@ -336,18 +401,25 @@ export class Game {
   // ---------- Schleife ----------
   resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    this.dpr = dpr;
     const w = window.innerWidth, h = window.innerHeight;
     this.canvas.width = Math.round(w * dpr);
     this.canvas.height = Math.round(h * dpr);
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
-    let viewH = VIEW_TILES_Y;
-    let s = this.canvas.height / viewH;
+    let s = this.canvas.height / VIEW_TILES_Y;
     if (this.canvas.width / s < MIN_VIEW_TILES_X) s = this.canvas.width / MIN_VIEW_TILES_X;
-    this.scale = s;
-    this.viewW = this.canvas.width / s;
-    this.viewH = this.canvas.height / s;
+    this.baseScale = s;
+    this._applyZoom();
   }
+
+  _applyZoom() {
+    // auf ganze Bildschirmpixel pro Art-Pixel runden waere schaerfer, aber Zoom soll weich sein
+    this.scale = this.baseScale / this.zoom;
+    this.viewW = this.canvas.width / this.scale;
+    this.viewH = this.canvas.height / this.scale;
+  }
+  get maxZoom() { return MAX_VIEW_TILES_Y / VIEW_TILES_Y; }
 
   frame(now, input) {
     if (!this._last) this._last = now;
@@ -405,24 +477,58 @@ export class Game {
         lv.burning.splice(i, 1);
       }
     }
-    // Remote-Spieler (interpoliert, ~110 ms Verzoegerung)
+    // Remote-Spieler (interpoliert mit angepasster Pufferzeit)
     if (this.net) {
-      const rt = this.net.now() - 110;
-      for (const p of this.players.values()) if (p.remote) p.update(dt, rt, this.time);
+      const now = this.net.now();
+      for (const p of this.players.values()) if (p.remote) p.update(dt, now, this.time, lv);
     }
+    // Feuerspeier
+    lv.flamesAt(ct, this.flames);
     // lokaler Spieler
     const prevY = this.me.y;
     this.me.update(dt, inp, this);
-    if (!this.me.dead) { this._collect(); this._enemyContacts(prevY, inp); }
+    if (!this.me.dead) { this._collect(); this._enemyContacts(prevY, inp); this._flameContacts(); }
     // Feuerbaelle
     this._updateFireballs(dt);
     this.fxp.update(dt);
     this._camera(dt);
+    if (this.net) this._keepOnScreen(dt);
     if (this.shakeT > 0) this.shakeT -= dt;
-    // Netzwerk: Zustand senden (20/s)
+    // Netzwerk: Zustand senden (25/s)
     if (this.net) {
       this._sendT = (this._sendT || 0) - dt;
-      if (this._sendT <= 0) { this._sendT = 0.05; this.net.send({ type: 'st', s: this.me.snapshot() }); }
+      if (this._sendT <= 0) { this._sendT = 0.04; this.net.send({ type: 'st', s: this.me.snapshot() }); }
+    }
+  }
+
+  _flameContacts() {
+    const p = this.me;
+    if (p.dead || p.finished || p.invuln > 0 || p.charId === 'fire') return;
+    for (const f of this.flames) {
+      if (Math.abs(f.x - p.x) < p.w / 2 + 0.22 && f.y > p.top - 0.2 && f.y < p.y + 0.15) { this.kill(p, 'flame'); return; }
+    }
+  }
+
+  // Mehrspieler: niemand darf aus dem Bild laufen. Wer zurueckbleibt, wird vom
+  // Bildrand mitgeschoben; haengt er fest, springt er zum vordersten Mitspieler.
+  _keepOnScreen(dt) {
+    const p = this.me;
+    if (p.dead || p.finished || !this._mates().length) { this._stuckT = 0; return; }
+    const m = p.w / 2 + 0.15;
+    const L = this.cam.x + m, R = this.cam.x + this.viewW - m;
+    if (p.x < L) { p._moveX(L - p.x, this, true); if (p.vx < 0) p.vx = 0; }
+    else if (p.x > R) { p._moveX(R - p.x, this, true); if (p.vx > 0) p.vx = 0; }
+    const off = p.x < this.cam.x - 0.1 || p.x > this.cam.x + this.viewW + 0.1 || p.top > this.cam.y + this.viewH + 1.5;
+    this._stuckT = off ? this._stuckT + dt : 0;
+    if (this._stuckT > 0.5) {
+      this._stuckT = 0;
+      const r = this.respawnPoint(true);
+      const deaths = p.deaths, coins = p.coins;
+      this.fxp.burst(p.x, p.y - 0.8, 12, { speed: 3, color: ['#ffffff', CHARACTERS[p.charId].color], life: 0.5, size: 0.14, type: 'star' });
+      p.reset(r.x, r.y - 0.01);
+      p.deaths = deaths; p.coins = coins; p.invuln = 1.2;
+      this.fxp.burst(r.x, r.y - 0.8, 16, { speed: 3, color: ['#ffffff', CHARACTERS[p.charId].color], life: 0.5, size: 0.14, type: 'star' });
+      this.sfx('join');
     }
   }
 
@@ -511,31 +617,86 @@ export class Game {
     }
   }
 
+  // wen die Kamera zeigt: alle aktiven Spieler (Mehrspieler) bzw. sich selbst
+  _focus() {
+    const me = this.me;
+    const meActive = !me.dead && !me.finished;
+    const mates = this.net ? this._mates() : [];
+    if (meActive) return [me, ...mates];
+    if (mates.length) return mates;
+    return [me];
+  }
+
   _snapCamera(soft = false) {
-    const p = this.me;
-    const tx = clamp(p.x - this.viewW / 2, 0, Math.max(0, this.level.w - this.viewW));
-    const ty = clamp(p.y - this.viewH * 0.62, -1, this.level.h - this.viewH + 0.2);
-    if (soft) { this.cam.x += (tx - this.cam.x) * 0.5; this.cam.y += (ty - this.cam.y) * 0.5; }
-    else { this.cam.x = tx; this.cam.y = ty; }
+    const F = this._focus();
+    this.zoom = this.zoomT = F.length > 1 ? this._wantZoom(F) : 1;
+    this._applyZoom();
+    const t = this._camTarget(F, true);
+    if (soft) { this.cam.x += (t.x - this.cam.x) * 0.5; this.cam.y += (t.y - this.cam.y) * 0.5; }
+    else { this.cam.x = t.x; this.cam.y = t.y; }
+  }
+
+  _wantZoom(F) {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const p of F) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.top); y1 = Math.max(y1, p.y); }
+    const baseW = this.canvas.width / this.baseScale, baseH = this.canvas.height / this.baseScale;
+    const z = Math.max(1, (x1 - x0 + 7) / baseW, (y1 - y0 + 6) / baseH);
+    return Math.min(this.maxZoom, z);
+  }
+
+  _camTarget(F, snap = false) {
+    const lw = this.level.w, lh = this.level.h, vw = this.viewW, vh = this.viewH;
+    let tx, ty;
+    if (F.length === 1) {
+      const p = F[0];
+      tx = p.x - vw / 2 + (snap ? 0 : this.cam.look);
+      const feet = p.y - this.cam.y;
+      ty = this.cam.y;
+      const lo = vh * 0.78, hi = vh * 0.38;
+      if (snap || p.onGround || p.inUpdraft) ty = p.y - vh * 0.64;
+      else if (feet > lo) ty = p.y - lo;
+      else if (feet < hi) ty = p.y - hi;
+    } else {
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, lead = F[0];
+      for (const p of F) {
+        x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.top); y1 = Math.max(y1, p.y);
+        if (p.x > x1) { x1 = p.x; lead = p; }
+      }
+      const m = 3;
+      tx = (x1 - x0) <= vw - 2 * m ? (x0 + x1) / 2 - vw / 2 : x1 - vw + m;   // passt nicht: der Vorderste zaehlt
+      if (y1 - y0 <= vh - 4) ty = (y0 + y1) / 2 - vh * 0.5 + 0.6;
+      else {
+        const pr = F.includes(this.me) ? this.me : lead;
+        ty = pr.y - vh * 0.64;
+      }
+    }
+    return { x: clamp(tx, 0, Math.max(0, lw - vw)), y: clamp(ty, -1, lh - vh + 0.2) };
   }
 
   _camera(dt) {
-    const p = this.me;
-    const lookTarget = p.dead ? this.cam.look : clamp(p.vx / PHYS.runMax, -1, 1) * this.viewW * 0.14 + p.facing * this.viewW * 0.04;
-    this.cam.look += (lookTarget - this.cam.look) * (1 - Math.exp(-dt * 2.2));
-    const tx = clamp(p.x - this.viewW / 2 + this.cam.look, 0, Math.max(0, this.level.w - this.viewW));
-    this.cam.x += (tx - this.cam.x) * (1 - Math.exp(-dt * 7));
-    // vertikal: Totzone, schneller nachziehen wenn am Boden
-    const feetScreen = p.y - this.cam.y;
-    let ty = this.cam.y;
-    const lo = this.viewH * 0.78, hi = this.viewH * 0.38;
-    if (p.onGround || p.inUpdraft) ty = p.y - this.viewH * 0.66;
-    else if (feetScreen > lo) ty = p.y - lo;
-    else if (feetScreen < hi) ty = p.y - hi;
-    if (p.dead) ty = this.cam.y;
-    ty = clamp(ty, -1, this.level.h - this.viewH + 0.2);
-    const rate = p.onGround ? 4.5 : 6;
-    this.cam.y += (ty - this.cam.y) * (1 - Math.exp(-dt * rate));
+    const F = this._focus();
+    const p = F[0];
+    // Zoom: im Mehrspieler so weit raus, dass alle draufpassen (begrenzt)
+    this.zoomT = F.length > 1 ? this._wantZoom(F) : 1;
+    this.zoom += (this.zoomT - this.zoom) * (1 - Math.exp(-dt * 1.8));
+    this._applyZoom();
+    if (F.length === 1) {
+      const lookTarget = p.dead ? this.cam.look : clamp(p.vx / PHYS.runMax, -1, 1) * this.viewW * 0.14 + p.facing * this.viewW * 0.04;
+      this.cam.look += (lookTarget - this.cam.look) * (1 - Math.exp(-dt * 2.2));
+    } else this.cam.look *= Math.exp(-dt * 3);
+    const t = this._camTarget(F);
+    this.cam.x += (t.x - this.cam.x) * (1 - Math.exp(-dt * (F.length > 1 ? 5 : 7)));
+    if (!(F.length === 1 && p.dead)) {
+      const rate = F.length > 1 ? 3.5 : p.onGround ? 4.5 : 6;
+      this.cam.y += (t.y - this.cam.y) * (1 - Math.exp(-dt * rate));
+    }
+    if (F.length > 1) {
+      // der Vorderste bleibt immer im Bild
+      let x1 = -Infinity;
+      for (const q of F) x1 = Math.max(x1, q.x);
+      this.cam.x = Math.max(this.cam.x, x1 - this.viewW + 1.2);
+      this.cam.x = clamp(this.cam.x, 0, Math.max(0, this.level.w - this.viewW));
+    }
   }
 
   render() {
@@ -547,19 +708,24 @@ export class Game {
     }
     // auf Bildschirmpixel einrasten (keine Naehte)
     cx = Math.round(cx * s) / s; cy = Math.round(cy * s) / s;
-    const lv = this.level, t = this.time;
+    const lv = this.level, t = this.time, vw = this.viewW, vh = this.viewH;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.bg.drawBack(ctx, cx, cy, s, W, H, lv, t);
-    this.tiles.draw(ctx, cx, cy, s, this.viewW, this.viewH);
-    this.tiles.drawDynamic(ctx, cx, cy, s, this.viewW, this.viewH);
-    E.drawUpdrafts(ctx, lv, cx, cy, s, this.viewW, this.viewH, t);
+    E.drawWaterfalls(ctx, lv, cx, cy, s, vw, vh, t);
+    this.tiles.draw(ctx, cx, cy, s, vw, vh);
+    this.tiles.drawDynamic(ctx, cx, cy, s, vw, vh);
+    E.drawUpdrafts(ctx, lv, cx, cy, s, vw, vh, t);
+    E.drawWind(ctx, lv, cx, cy, s, vw, vh, t);
     ctx.imageSmoothingEnabled = false;
-    const vis = (x, pad = 3) => x > cx - pad && x < cx + this.viewW + pad;
+    const vis = (x, pad = 3) => x > cx - pad && x < cx + vw + pad;
+    for (const h of lv.hubs) if (vis(h.x, h.r + 4)) E.drawHub(ctx, h, lv.movers, cx, cy, s, t);
     for (const m of lv.movers) if (vis(m.x, m.w + 2)) E.drawMover(ctx, m, cx, cy, s);
     for (const c of lv.crumbles) if (vis(c.x)) E.drawCrumble(ctx, c, cx, cy, s, t);
     if (lv.goal && vis(lv.goal.x, 6)) E.drawGoal(ctx, lv.goal, cx, cy, s, t);
     for (const cp of lv.checkpoints) if (vis(cp.x)) E.drawCheckpoint(ctx, cp, cx, cy, s, t);
     for (const sp of lv.springs) if (vis(sp.x)) E.drawSpring(ctx, sp, cx, cy, s);
+    const ct = this.clock();
+    for (const sp of lv.spitters) if (vis(sp.x)) E.drawSpitter(ctx, sp, cx, cy, s, ct);
     for (const c of lv.coins) if (!c.taken && vis(c.x)) E.drawCoin(ctx, c, cx, cy, s, t);
     for (const g of lv.gems) if (!g.taken && vis(g.x)) E.drawGem(ctx, g, cx, cy, s, t);
     // Gegner + Spieler (eigener zuletzt)
@@ -575,16 +741,35 @@ export class Game {
     const order = [...this.players.values()].filter(p => p !== this.me);
     order.push(this.me);
     for (const p of order) this._drawPlayer(ctx, p, cx, cy, s, t);
-    ctx.imageSmoothingEnabled = false;
-    for (const f of this.fireballs) E.drawFireball(ctx, f, cx, cy, s, t);
     this.fxp.draw(ctx, cx, cy, s);
     this.bg.drawFront(ctx, cx, cy, s, W, H, lv, t);
+    // Licht der Tageszeit
+    this.bg.drawTint(ctx, W, H);
+    if (this.bg.theme.glow) this._drawGlows(ctx, cx, cy, s, t, vis, order);
+    ctx.imageSmoothingEnabled = false;
+    for (const f of this.flames) if (vis(f.x)) E.drawFlame(ctx, f, cx, cy, s, t);
+    for (const f of this.fireballs) E.drawFireball(ctx, f, cx, cy, s, t);
+    for (const p of order) this._drawName(ctx, p, cx, cy, s);
     this._drawIndicators(ctx, cx, cy, s, W, H);
+  }
+
+  // nachts leuchten Muenzen, Kristalle, Checkpoints, das Tor und die Figuren
+  _drawGlows(ctx, cx, cy, s, t, vis, order) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const lv = this.level;
+    for (const c of lv.coins) if (!c.taken && vis(c.x)) E.drawGlow(ctx, (c.x - cx) * s, (c.y - cy) * s, s * 0.6, '255,200,80', 0.22);
+    for (const g of lv.gems) if (!g.taken && vis(g.x)) E.drawGlow(ctx, (g.x - cx) * s, (g.y - cy) * s, s * (1.3 + 0.1 * Math.sin(t * 3)), (GEM_COLORS[g.el] || GEM_COLORS.skill).glow, 0.4);
+    for (const cp of lv.checkpoints) if (cp.active && vis(cp.x)) E.drawGlow(ctx, (cp.x - cx) * s, (cp.y - 2.3 - cy) * s, s * 1.4, '255,250,210', 0.35);
+    if (lv.goal && vis(lv.goal.x, 6)) E.drawGlow(ctx, (lv.goal.x - cx) * s, (lv.goal.y - 1.9 - cy) * s, s * 3, '170,200,255', 0.45);
+    for (const p of order) if (!p.dead) E.drawGlow(ctx, (p.x - cx) * s, (p.y - 0.9 - cy) * s, s * 1.6, '255,235,200', 0.16);
+    for (const e of this.enemies) if (e.alive && e.def.fly && vis(e.x)) E.drawGlow(ctx, (e.x - cx) * s, (e.y - 0.6 - cy) * s, s * 1.2, '160,220,255', 0.3);
+    ctx.restore();
   }
 
   _drawPlayer(ctx, p, cx, cy, s, t) {
     const rig = this.rigs[p.charId];
-    if (!rig) return;
+    if (!rig || (p.remote && !p.seen)) return;
     if (p.dead && p.deadT > 0.5) return;
     const x = (p.x - cx) * s, y = (p.y - cy) * s;
     if (x < -3 * s || x > this.canvas.width + 3 * s) return;
@@ -594,15 +779,20 @@ export class Game {
       ctx.beginPath(); ctx.ellipse(x, y - s * 0.02, s * 0.42, s * 0.09, 0, 0, Math.PI * 2); ctx.fill();
     }
     rig.draw(ctx, p.anim.pose, x, y + s * 0.04, PHYS.spriteH * s, p.facing, t);
+  }
+
+  _drawName(ctx, p, cx, cy, s) {
     // Namensschild fuer Mitspieler
-    if (this.players.size > 1 && !p.dead) {
+    if (this.players.size > 1 && !p.dead && (!p.remote || p.seen)) {
+      const x = (p.x - cx) * s, y = (p.y - cy) * s;
       const col = CHARACTERS[p.charId].color;
-      ctx.font = `700 ${Math.round(s * 0.3)}px system-ui, sans-serif`;
+      const fs = Math.round(Math.max(s * 0.32, 12 * this.dpr));
+      ctx.font = `700 ${fs}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
-      const ny = y - PHYS.spriteH * s - s * 0.12;
-      const tw = ctx.measureText(p.name).width + s * 0.3;
+      const ny = y - PHYS.spriteH * s - fs * 0.4;
+      const tw = ctx.measureText(p.name).width + fs;
       ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.fillRect(x - tw / 2, ny - s * 0.3, tw, s * 0.4);
+      ctx.fillRect(x - tw / 2, ny - fs * 0.95, tw, fs * 1.3);
       ctx.fillStyle = col;
       ctx.fillText(p.name, x, ny);
     }
@@ -611,7 +801,7 @@ export class Game {
   _drawIndicators(ctx, cx, cy, s, W, H) {
     if (this.players.size < 2) return;
     for (const p of this.players.values()) {
-      if (p === this.me || p.finished) continue;
+      if (p === this.me || p.finished || (p.remote && !p.seen)) continue;
       const x = (p.x - cx) * s, y = (p.y - 0.8 - cy) * s;
       if (x > 0 && x < W && y > 0 && y < H) continue;
       const ix = clamp(x, s * 0.5, W - s * 0.5), iy = clamp(y, s * 0.9, H - s * 0.5);

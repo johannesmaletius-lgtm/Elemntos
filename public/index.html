@@ -44,11 +44,15 @@
   <section id="scr-title" class="screen">
     <div class="panel title-panel">
       <h1>Elementos</h1>
-      <p class="sub">Welt 1 · Himmelsinseln</p>
+      <p class="sub">Welt 1 · Himmelsinseln · 10 Level</p>
       <div class="title-chars" id="title-chars"></div>
       <button class="btn big" id="btn-solo">Allein spielen</button>
-      <button class="btn big alt" id="btn-host">Mit Freunden spielen</button>
-      <p class="small">Bis zu 4 Spieler – lade Freunde per Link ein.</p>
+      <button class="btn big alt" id="btn-host">Truppe gründen</button>
+      <div class="join-row">
+        <input id="inp-code" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="CODE">
+        <button class="btn" id="btn-join">Truppe beitreten</button>
+      </div>
+      <p class="small" id="title-progress">Bis zu 4 Spieler – lade Freunde per Link ein.</p>
       <button class="btn tiny" id="btn-mute">🔊 Ton an</button>
     </div>
   </section>
@@ -61,26 +65,39 @@
         <input id="inp-name" maxlength="12" autocomplete="off" placeholder="Name">
       </div>
       <div class="char-grid" id="char-grid"></div>
+      <p class="small">Jede Figur kommt durch jedes Level. Manche Kristalle erreicht aber nur ein bestimmtes Element.</p>
       <div class="row">
         <button class="btn" id="btn-select-back">Zurück</button>
-        <button class="btn primary" id="btn-select-go">Los geht's!</button>
+        <button class="btn primary" id="btn-select-go">Weiter</button>
       </div>
     </div>
   </section>
 
-  <section id="scr-lobby" class="screen hidden">
-    <div class="panel wide">
-      <h2>Raum <span id="lobby-code" class="code"></span></h2>
-      <div class="invite">
-        <input id="lobby-link" readonly>
-        <button class="btn" id="btn-share">Link teilen</button>
-        <button class="btn" id="btn-copy">Kopieren</button>
+  <section id="scr-map" class="screen hidden mapscreen">
+    <div class="map-top">
+      <button class="btn tiny" id="btn-map-back">◀ Menü</button>
+      <div class="map-title">Welt 1 · Himmelsinseln</div>
+      <div class="hud-pill" id="map-gems"></div>
+    </div>
+    <div class="map-side" id="map-side">
+      <div class="map-card">
+        <div class="lv-head"><span class="lv-num" id="lv-num">Level 1</span><span class="lv-time" id="lv-theme"></span></div>
+        <div class="lv-name" id="lv-name"></div>
+        <div class="lv-gems" id="lv-gems"></div>
+        <div class="lv-stats" id="lv-stats"></div>
+        <button class="btn primary big" id="btn-map-play">Los!</button>
       </div>
-      <div class="char-grid" id="lobby-grid"></div>
-      <p class="small" id="lobby-hint">Tippe auf ein Element, um es auszuwählen.</p>
-      <div class="row">
-        <button class="btn" id="btn-lobby-leave">Verlassen</button>
-        <button class="btn primary" id="btn-lobby-start">Spiel starten</button>
+      <div class="map-party" id="map-party">
+        <div class="party-head">
+          <span>Truppe <span class="code" id="party-code"></span></span>
+          <button class="btn tiny" id="btn-party-invite">🔗 Einladen</button>
+        </div>
+        <div class="party-list" id="party-list"></div>
+        <input id="party-link" readonly class="hidden">
+      </div>
+      <div class="map-chars">
+        <div class="small">Deine Figur:</div>
+        <div class="char-pick" id="map-chars"></div>
       </div>
     </div>
   </section>
@@ -91,6 +108,7 @@
       <div class="ability-help" id="pause-help"></div>
       <button class="btn big primary" id="btn-resume">Weiter</button>
       <button class="btn big" id="btn-restart">Neu starten</button>
+      <button class="btn big" id="btn-tomap">Zur Karte</button>
       <button class="btn big" id="btn-menu">Hauptmenü</button>
       <button class="btn tiny" id="btn-mute2">🔊</button>
     </div>
@@ -100,11 +118,14 @@
     <div class="panel wide">
       <h2 id="res-title">Geschafft!</h2>
       <div class="res-stats" id="res-stats"></div>
+      <div class="res-gems" id="res-gems"></div>
       <div class="res-players" id="res-players"></div>
       <div class="row">
-        <button class="btn" id="btn-res-menu">Hauptmenü</button>
-        <button class="btn primary" id="btn-res-again">Nochmal</button>
+        <button class="btn" id="btn-res-menu">Zur Karte</button>
+        <button class="btn" id="btn-res-again">Nochmal</button>
+        <button class="btn primary" id="btn-res-next">Nächstes Level ▶</button>
       </div>
+      <p class="small hidden" id="res-wait">Der Gastgeber wählt, wie es weitergeht …</p>
     </div>
   </section>
 

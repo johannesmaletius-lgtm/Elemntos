@@ -232,6 +232,40 @@ function drawThorns(buf, ox, oy, tx, ty, down) {
   }
 }
 
+// Wolken-Plattform (von unten durchspringbar): bauschige Oberkante, runde Enden
+const CL = { top: rgb('#ffffff'), body: rgb('#f2f8ff'), shade: rgb('#d3e7fb'), shade2: rgb('#b3d2f3'), edge: rgb('#86aedd') };
+function drawCloudTile(buf, ox, oy, tx, ty, lv) {
+  const lf = lv.get(tx - 1, ty) === T.CLOUD, rt = lv.get(tx + 1, ty) === T.CLOUD;
+  const topAt = (wx) => {
+    let best = 6;
+    const k0 = Math.floor(wx / 8);
+    for (let k = k0 - 1; k <= k0 + 1; k++) {
+      const cx = k * 8 + 4, r = 4.5 + hash2(k, ty, 91) * 2.5, dx = wx - cx;
+      if (Math.abs(dx) < r) best = Math.min(best, 2.5 - Math.sqrt(r * r - dx * dx));
+    }
+    return best;
+  };
+  for (let x = 0; x < TS; x++) {
+    const wx = tx * TS + x;
+    let t = topAt(wx), b = 9 + (hash2(wx >> 2, ty, 92) < 0.5 ? 1 : 0);
+    if (!lf && x < 7) { const d = 7 - x, e = Math.sqrt(Math.max(0, 49 - d * d)); t = Math.max(t, 3 - e * 0.95); b = Math.min(b, 3 + e); }
+    if (!rt && x > 8) { const d = x - 8, e = Math.sqrt(Math.max(0, 49 - d * d)); t = Math.max(t, 3 - e * 0.95); b = Math.min(b, 3 + e); }
+    const t0 = Math.ceil(t), b0 = Math.floor(b);
+    for (let y = t0; y <= b0; y++) {
+      let c;
+      if (y === b0) c = CL.edge;
+      else if (y === t0) c = CL.top;
+      else if (y >= b0 - 1) c = CL.shade2;
+      else if (y >= b0 - 3) c = CL.shade;
+      else if (y <= t0 + 1) c = CL.top;
+      else c = CL.body;
+      if (((!lf && x === 0) || (!rt && x === TS - 1)) && y > t0) c = CL.edge;
+      buf.set(ox + x, oy + y, c);
+    }
+    if (t0 - 1 >= -6 && (!lf ? x > 0 : true) && (!rt ? x < TS - 1 : true)) buf.set(ox + x, oy + t0 - 1, CL.edge);
+  }
+}
+
 // --- Deko-Sprites (prozedural, einmalig erzeugt) ---
 const SPRITES = {};
 
@@ -430,6 +464,7 @@ export class TileRenderer {
           if (t === T.GROUND) drawGround(buf, ox, oy, tx, ty, lv);
           else if (t === T.STONE) drawStone(buf, ox, oy, tx, ty, lv);
           else if (t === T.ONEWAY) drawOneway(buf, ox, oy, tx, ty, lv);
+          else if (t === T.CLOUD) drawCloudTile(buf, ox, oy, tx, ty, lv);
           else if (t === T.THORN_UP) drawThorns(buf, ox, oy, tx, ty, false);
           else if (t === T.THORN_DOWN) drawThorns(buf, ox, oy, tx, ty, true);
         }
