@@ -23,11 +23,16 @@ export async function loadRig(id) {
   return p;
 }
 
+// plant: 0..1 – wie stark die Figur auf den Boden gesetzt wird. Bei 1 sitzt die
+//   tiefste Sohle genau auf dem Fusspunkt, egal wie die Beine gerade stehen
+//   (gespreizte Beine -> Huefte tiefer, gestrecktes Standbein -> hoeher).
+// turn: -1..1 – Wende-Drehung (Faktor auf die Blickrichtung, 1 = normal).
 export function neutralPose() {
   return {
     sx: 1, sy: 1, tilt: 0, bodyY: 0, lean: 0, spin: 0,
     thighF: 0, shinF: 0, thighB: 0, shinB: 0, armF: 0, armB: 0,
     conv: 0, tailAmp: 3, tailSpeed: 3, tailLift: 0, alpha: 1,
+    plant: 0, turn: 1,
   };
 }
 
@@ -53,6 +58,49 @@ export class Rig {
       const [, , w] = tail.rect;
       this.tailDir = (tail.off[0] + w / 2) < 0 ? -1 : 1;
     }
+    // Sohlen (Ferse + Spitze) der Unterschenkel, fuer den Bodenkontakt
+    this.soles = { shinF: this._findSole('shinF'), shinB: this._findSole('shinB') };
+    this.baseSole = this.soleY(0, 0, 0, 0);
+  }
+
+  // Unterste deckende Pixelreihe des Teils -> linker und rechter Sohlenpunkt
+  // (in Teil-Koordinaten relativ zum Gelenk). Rueckfall: untere Rechteck-Ecken.
+  _findSole(name) {
+    const p = this.parts[name];
+    if (!p) return null;
+    const [sx, sy, w, h] = p.rect;
+    const fallback = [[p.off[0] + w * 0.2, p.off[1] + h], [p.off[0] + w * 0.8, p.off[1] + h]];
+    try {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      g.drawImage(this.img, sx, sy, w, h, 0, 0, w, h);
+      const d = g.getImageData(0, 0, w, h).data;
+      for (let y = h - 1; y >= h * 0.5; y--) {
+        let x0 = -1, x1 = -1;
+        for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 140) { if (x0 < 0) x0 = x; x1 = x; }
+        if (x0 >= 0 && x1 - x0 >= 3) return [[p.off[0] + x0, p.off[1] + y + 1], [p.off[0] + x1 + 1, p.off[1] + y + 1]];
+      }
+    } catch (e) { /* Bild nicht lesbar (z.B. file://) */ }
+    return fallback;
+  }
+
+  // Tiefster Sohlenpunkt (groesstes y, Figurenkoordinaten) fuer die Beinwinkel.
+  // (Das Zusammenruecken der Beine 'conv' verschiebt nur waagerecht.)
+  soleY(thighF, shinF, thighB, shinB) {
+    return Math.max(this._legSole('thighF', 'shinF', thighF, shinF),
+      this._legSole('thighB', 'shinB', thighB, shinB));
+  }
+
+  _legSole(thigh, shin, aT, aS) {
+    const t = this.parts[thigh], s = this.parts[shin], pts = this.soles[shin];
+    if (!t || !s || !pts) return -Infinity;
+    const kx = s.joint[0] - t.joint[0], ky = s.joint[1] - t.joint[1];
+    const sT = Math.sin(aT), cT = Math.cos(aT), a2 = aT + aS, s2 = Math.sin(a2), c2 = Math.cos(a2);
+    const kneeY = t.joint[1] + kx * sT + ky * cT;
+    let best = -Infinity;
+    for (const [px, py] of pts) best = Math.max(best, kneeY + px * s2 + py * c2);
+    return best;
   }
 
   _part(ctx, name) {
@@ -116,7 +164,10 @@ export class Rig {
     ctx.save();
     ctx.globalAlpha *= pose.alpha;
     ctx.translate(x, y);
-    ctx.scale(facing * this.natural * k, k);
+    // Wende: Figur wird kurz schmal und klappt in die neue Richtung
+    const tn = pose.turn === undefined ? 1 : pose.turn;
+    const tw = (tn < 0 ? -1 : 1) * Math.max(0.32, Math.abs(tn));
+    ctx.scale(facing * this.natural * k * tw, k);
     if (pose.spin) {
       const cy = -this.height * 0.45;
       ctx.translate(0, cy);
@@ -125,7 +176,9 @@ export class Rig {
     }
     ctx.rotate(pose.tilt);
     ctx.scale(pose.sx, pose.sy);
-    ctx.translate(0, pose.bodyY);
+    // Bodenkontakt: tiefste Sohle auf den Fusspunkt setzen
+    const plant = pose.plant && Number.isFinite(this.baseSole) ? pose.plant * (this.baseSole - this.soleY(pose.thighF, pose.shinF, pose.thighB, pose.shinB)) : 0;
+    ctx.translate(0, pose.bodyY + plant);
 
     const upper = (fn) => {
       ctx.save();

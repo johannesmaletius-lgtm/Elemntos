@@ -23,7 +23,7 @@ export class Player {
     this.x = x; this.y = y; this.vx = 0; this.vy = 0;
     this.facing = 1; this.onGround = false; this.wasGround = false;
     this.coyote = 0; this.jumpBuf = 0; this.jumpHeld = false; this.jumping = false;
-    this.ride = null; this.skid = false;
+    this.ride = null; this.skid = false; this.pushing = false;
     this.airJumps = 1; this.flipT = 0; this.flipDur = 0.36; this.gliding = false;
     this.dashT = 0; this.dashReady = true; this.dashCd = 0;
     this.pound = null; this.poundT = 0;
@@ -173,7 +173,9 @@ export class Player {
     // ---- Bewegen + Kollision ----
     const prevGround = this.onGround;
     const impactV = this.vy;
-    this._moveX(this.vx * dt, game);
+    const blocked = this._moveX(this.vx * dt, game);
+    // gegen eine Wand druecken (fuer die Schiebe-Animation)
+    this.pushing = blocked && prevGround && ax !== 0 && this.dashT <= 0 && !this.pound;
     this.wind = this._windAt(lv);
     if (this.wind) this._moveX(this.wind * PHYS.windSpeed * dt, game, true);
     this._moveY(this.vy * dt, game);
@@ -417,7 +419,7 @@ export class Player {
   snapshot() {
     return [
       +this.x.toFixed(3), +this.y.toFixed(3), +this.vx.toFixed(2), +this.vy.toFixed(2),
-      this.facing, (this.onGround ? 1 : 0) | (this.gliding ? 2 : 0) | (this.skid ? 4 : 0) | (this.dead ? 8 : 0) | (this.finished ? 16 : 0) | (this.dashT > 0 ? 32 : 0) | (this.throwT > 0 ? 64 : 0),
+      this.facing, (this.onGround ? 1 : 0) | (this.gliding ? 2 : 0) | (this.skid ? 4 : 0) | (this.dead ? 8 : 0) | (this.finished ? 16 : 0) | (this.dashT > 0 ? 32 : 0) | (this.throwT > 0 ? 64 : 0) | (this.pushing ? 128 : 0),
       this.pound === 'windup' ? 1 : this.pound === 'slam' ? 2 : 0, +this.flipT.toFixed(2), +this.invuln.toFixed(2), +this.deadT.toFixed(2),
     ];
   }

@@ -3,11 +3,19 @@
 <style>body{margin:0;background:#7cc4ff;font:12px sans-serif}canvas{display:block}</style></head>
 <body><canvas id="c"></canvas>
 <script type="module">
+// Rig-Test: alle Posen der Figuren.
+//   ?p=idle,walk 0      nur bestimmte Posen
+//   ?h=150              Figurenhoehe in Pixeln
+//   ?film=jump          Filmstreifen eines Ablaufs (echte updateAnim-Simulation):
+//                       start, jump, runjump, turn, stop, land, throw, dead, double
+//   &ys=0.3             (Filmstreifen) Sprunghoehe zur Darstellung stauchen
+//   ?live=1             laufende Animation aller Ablaeufe (zum Anschauen im Browser)
+//   ?ids=fire,earth     nur bestimmte Figuren
 import { Rig } from '../js/rig.js';
-import { targetPose, createAnimState } from '../js/anim.js';
+import { targetPose, createAnimState, updateAnim, onLand, onJump } from '../js/anim.js';
 import { PHYS } from '../js/config.js';
-const ids = ['air','water','earth','fire'];
-// Pfade relativ zu /dev/ laden
+const Q = new URLSearchParams(location.search);
+const ids = (Q.get('ids') || 'air,water,earth,fire').split(',');
 async function loadRigRel(id) {
   const meta = await fetch('../assets/chars/' + id + '.json').then(r => r.json());
   const img = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = '../assets/chars/' + id + '.png'; });
@@ -15,28 +23,115 @@ async function loadRigRel(id) {
 }
 const rigs = await Promise.all(ids.map(loadRigRel));
 const c = document.getElementById('c'); const ctx = c.getContext('2d');
-const base = { vx:0, vy:0, onGround:true, facing:1, flipT:0, flipDur:0.35, dashT:0, pound:null, gliding:false, skid:false, throwT:0, dead:false, finished:false, invuln:0 };
-const ALL = [
+const base = { vx:0, vy:0, onGround:true, facing:1, flipT:0, flipDur:0.36, dashT:0, pound:null, gliding:false, skid:false, pushing:false, throwT:0, dead:false, deadT:0, finished:false, invuln:0 };
+const H = +(Q.get('h') || 150), colW = H * 0.8;
+
+// ---------- Ablaeufe: Funktion (Zeit) -> Spielerzustand + Ereignisse ----------
+const FILMS = {
+  // aus dem Stand losrennen, dann normal laufen
+  start: { dur: 1.2, f: (t) => ({ vx: Math.min(PHYS.runMax, t * 26) }) },
+  // Standsprung mit Landung
+  jump: { dur: 1.1, f: (t) => jumpArc(t, 0) },
+  // Sprung aus vollem Lauf
+  runjump: { dur: 1.1, f: (t) => ({ ...jumpArc(t, PHYS.runMax), vx: PHYS.runMax }) },
+  // Wende im Laufen (Bremsen + Umdrehen)
+  turn: { dur: 0.7, f: (t) => t < 0.15 ? { vx: 6 } : t < 0.32 ? { vx: 6 - (t - 0.15) * 75, skid: true, facing: -1 } : { vx: -Math.min(6, (t - 0.32) * 30), facing: -1 } },
+  // aus dem Rennen anhalten
+  stop: { dur: 0.8, f: (t) => ({ vx: Math.max(0, PHYS.runMax - Math.max(0, t - 0.15) * 40) }) },
+  // harter Fall auf den Boden
+  land: { dur: 0.8, f: (t) => t < 0.15 ? { onGround: false, vy: 20 } : {}, ev: { 0.15: (a) => onLand(a, 21) } },
+  throw: { dur: 0.45, f: (t) => ({ throwT: t > 0.05 && t < 0.23 ? 0.23 - t : 0 }) },
+  dead: { dur: 0.55, f: (t) => ({ dead: true, deadT: t }) },
+  double: { dur: 0.6, f: (t) => ({ onGround: false, vy: -15 + t * 30, flipT: Math.max(0, 0.36 - t) }) },
+  push: { dur: 0.6, f: () => ({ pushing: true }) },
+};
+function jumpArc(t, vx) {
+  const t0 = 0.1, v0 = PHYS.jumpV + (vx ? PHYS.jumpRunBonus : 0);
+  if (t < t0) return { vx };
+  const tt = t - t0, tUp = v0 / PHYS.gravityUp;
+  let vy, y;
+  if (tt < tUp) { vy = -v0 + PHYS.gravityUp * tt; y = -(v0 * tt - PHYS.gravityUp * tt * tt / 2); }
+  else { const h = v0 * v0 / (2 * PHYS.gravityUp), d = tt - tUp; vy = PHYS.gravityFall * d; y = -h + PHYS.gravityFall * d * d / 2; }
+  if (y >= 0 && tt > 0.05) return { vx, landed: true };
+  return { vx, onGround: false, vy, y };
+}
+function simulate(name, rigIndex, frames) {
+  const F = FILMS[name], a = createAnimState(), dt = 1 / 120;
+  const out = []; let wasGround = true, t = 0, fired = {};
+  const every = F.dur / frames;
+  let next = 0;
+  for (let i = 0; t <= F.dur + 1e-9; i++, t = i * dt) {
+    const s = F.f(t);
+    const p = Object.assign({ charId: ids[rigIndex] }, base, s);
+    if (p.onGround && !wasGround) onLand(a, 18);
+    if (!p.onGround && wasGround && p.vy < 0) onJump(a);
+    wasGround = p.onGround;
+    for (const k in F.ev || {}) if (t >= +k && !fired[k]) { fired[k] = 1; F.ev[k](a); }
+    const pose = updateAnim(a, p, dt, t + 0.3);
+    if (t >= next - 1e-9) { out.push({ pose: { ...pose }, y: s.y || 0, facing: p.facing, t }); next += every; }
+  }
+  return out;
+}
+
+const STATIC = [
   ['idle', {}],
   ['walk 0', {vx:PHYS.walkMax}, 0], ['walk 1', {vx:PHYS.walkMax}, Math.PI/2], ['walk 2', {vx:PHYS.walkMax}, Math.PI], ['walk 3', {vx:PHYS.walkMax}, Math.PI*1.5],
   ['run 0', {vx:PHYS.runMax}, 0], ['run 1', {vx:PHYS.runMax}, Math.PI/2], ['run 2', {vx:PHYS.runMax}, Math.PI], ['run 3', {vx:PHYS.runMax}, Math.PI*1.5],
-  ['jump', {onGround:false, vy:-14, vx:5}], ['fall', {onGround:false, vy:12}], ['skid', {skid:true, vx:6}],
-  ['glide', {onGround:false, vy:2, gliding:true}], ['dash', {dashT:0.1, vx:20}], ['pound', {pound:'windup', onGround:false}], ['slam', {pound:'slam', onGround:false, vy:25}],
+  ['jump', {onGround:false, vy:-14, vx:5}], ['apex', {onGround:false, vy:0}], ['fall', {onGround:false, vy:16}], ['skid', {skid:true, vx:6}],
+  ['push', {pushing:true}], ['glide', {onGround:false, vy:2, gliding:true}], ['dash', {dashT:0.1, vx:20}], ['pound', {pound:'windup', onGround:false}], ['slam', {pound:'slam', onGround:false, vy:25}],
+  ['cheer', {finished:true}],
 ];
-const sel = new URLSearchParams(location.search).get('p'); const poses = sel ? ALL.filter(x=>sel.split(',').includes(x[0])) : ALL;
-const H = +(new URLSearchParams(location.search).get('h')||150), colW = H*0.8;
-c.width = colW * poses.length; c.height = (H + 40) * ids.length + 20;
-ctx.fillStyle = '#7cc4ff'; ctx.fillRect(0,0,c.width,c.height);
-rigs.forEach((rig, r) => {
-  poses.forEach(([name, over, phase], i) => {
-    const a = createAnimState(); if (phase !== undefined) a.phase = phase;
-    const p = Object.assign({charId: ids[r]}, base, over);
-    const { T } = targetPose(a, p, 0, 0.3);
-    const x = i * colW + colW/2, y = r * (H + 40) + H + 20;
-    ctx.fillStyle = '#4a2c1c'; ctx.fillRect(i*colW+5, y, colW-10, 3);
-    rig.draw(ctx, T, x, y, H, 1, 0.3);
-    ctx.fillStyle = '#000'; ctx.fillText(name, i*colW + 8, y + 16);
+
+function ground(x0, w, y) { ctx.fillStyle = '#4a2c1c'; ctx.fillRect(x0 + 4, y, w - 8, 3); }
+
+if (Q.get('live')) {
+  const names = Object.keys(FILMS);
+  const films = names.map(n => rigs.map((_, r) => simulate(n, r, Math.round(FILMS[n].dur * 60))));
+  c.width = colW * names.length; c.height = (H + 40) * ids.length + 20;
+  const t0 = performance.now();
+  (function loop() {
+    ctx.fillStyle = '#7cc4ff'; ctx.fillRect(0, 0, c.width, c.height);
+    const t = (performance.now() - t0) / 1000;
+    names.forEach((n, i) => rigs.forEach((rig, r) => {
+      const fr = films[i][r], k = Math.floor((t * 60) % (fr.length + 20));
+      const f = fr[Math.min(k, fr.length - 1)];
+      const x = i * colW + colW / 2, y = r * (H + 40) + H + 20, s = H / PHYS.spriteH;
+      ground(i * colW, colW, y);
+      rig.draw(ctx, f.pose, x, y + f.y * s, H, f.facing, t);
+      ctx.fillStyle = '#000'; ctx.fillText(n, i * colW + 8, y + 16);
+    }));
+    requestAnimationFrame(loop);
+  })();
+  document.title = 'ready';
+} else if (Q.get('film')) {
+  const name = Q.get('film'), N = +(Q.get('n') || 12), YS = +(Q.get('ys') || 0.3);   // Sprunghoehe gestaucht
+  c.width = colW * N; c.height = (H + 40) * ids.length + 20;
+  ctx.fillStyle = '#7cc4ff'; ctx.fillRect(0, 0, c.width, c.height);
+  rigs.forEach((rig, r) => {
+    const fr = simulate(name, r, N);
+    fr.slice(0, N).forEach((f, i) => {
+      const x = i * colW + colW / 2, y = r * (H + 40) + H + 20, s = H / PHYS.spriteH;
+      ground(i * colW, colW, y);
+      rig.draw(ctx, f.pose, x, y + f.y * s * YS, H, f.facing, f.t);
+      ctx.fillStyle = '#000'; ctx.fillText(name + ' ' + f.t.toFixed(2) + 's', i * colW + 8, y + 16);
+    });
   });
-});
-document.title = 'ready';
+  document.title = 'ready';
+} else {
+  const sel = Q.get('p'); const poses = sel ? STATIC.filter(x => sel.split(',').includes(x[0])) : STATIC;
+  c.width = colW * poses.length; c.height = (H + 40) * ids.length + 20;
+  ctx.fillStyle = '#7cc4ff'; ctx.fillRect(0, 0, c.width, c.height);
+  rigs.forEach((rig, r) => {
+    poses.forEach(([name, over, phase], i) => {
+      const a = createAnimState(); if (phase !== undefined) a.phase = phase;
+      const p = Object.assign({ charId: ids[r] }, base, over);
+      const { T } = targetPose(a, p, 0, 0.3);
+      const x = i * colW + colW / 2, y = r * (H + 40) + H + 20;
+      ground(i * colW, colW, y);
+      rig.draw(ctx, T, x, y, H, 1, 0.3);
+      ctx.fillStyle = '#000'; ctx.fillText(name, i * colW + 8, y + 16);
+    });
+  });
+  document.title = 'ready';
+}
 </script></body></html>
