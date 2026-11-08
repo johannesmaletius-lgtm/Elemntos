@@ -98,5 +98,63 @@ export default function build() {
   b.goal(338, 18);
   b.decor('T', 346, 18);
 
+  // ===== Neu (eingeschoben, von rechts nach links): =====
+  // B) Wolkenbruecke ueber der Dornengrube (vor dem Morgentor)
+  {
+    const x = 310;
+    b.splice(x, 120);
+    b.ground(x, x + 8, 19);
+    b.checkpoint(x + 3, 18);
+    b.decor('b', x + 6, 18);
+    pit(b, x + 9, x + 62);
+    b.cloud(x + 11, x + 14, 17); b.cloud(x + 18, x + 21, 15);
+    b.crumble(x + 25, x + 26, 14); b.cloud(x + 30, x + 33, 13);
+    b.mover(3, [[x + 37, 13], [x + 45, 13]], 2.4);
+    b.cloud(x + 51, x + 54, 15); b.cloud(x + 58, x + 61, 17);
+    b.arc(x + 8, x + 11, 15, 1); b.arc(x + 14, x + 18, 13, 1); b.coins(x + 25, x + 26, 12); b.coins(x + 30, x + 33, 11);
+    b.coins(x + 38, x + 47, 11); b.arc(x + 54, x + 58, 13, 1);
+    b.cloud(x + 40, x + 46, 19); b.coins(x + 41, x + 45, 18);   // tiefe Rettungswolke
+    b.ground(x + 63, x + 88, 19);
+    b.decor('b', x + 66, 18); b.decor('i', x + 75, 18); b.decor('T', x + 84, 18);
+    b.mummy(x + 70, 18); b.mummyTall(x + 80, 18);
+    b.coins(x + 65, x + 69, 17); b.coins(x + 76, x + 79, 17);
+    // Bluetenstufen: Pilz hinauf zu einem Wolkenbogen, unten weiter Boden
+    b.ground(x + 89, x + 119, 19);
+    b.spring(x + 94, 18);
+    b.cloud(x + 97, x + 101, 11); b.cloud(x + 104, x + 107, 12); b.cloud(x + 110, x + 113, 14);
+    b.coins(x + 97, x + 101, 10); b.coins(x + 104, x + 107, 11); b.coins(x + 110, x + 113, 13);
+    b.mummy(x + 104, 18); b.mummy(x + 114, 18);
+    b.decor('r', x + 91, 18); b.decor('b', x + 117, 18);
+  }
+  // A) Kirschbluetenterrassen und Wolkenaufzug (nach der Ruineninsel)
+  {
+    const x = 105;
+    b.splice(x, 130);
+    b.ground(x, x + 11, 19);
+    b.coins(x + 2, x + 8, 17);
+    b.island(x + 13, x + 18, 17, 3); b.island(x + 21, x + 26, 15, 3); b.island(x + 29, x + 35, 13, 3);
+    b.decor('b', x + 14, 16); b.decor('T', x + 23, 14); b.mummy(x + 33, 12);
+    b.cloud(x + 39, x + 42, 15); b.cloud(x + 46, x + 49, 17);
+    b.coins(x + 13, x + 18, 15); b.arc(x + 18, x + 21, 13, 1); b.arc(x + 26, x + 29, 11, 1);
+    b.arc(x + 35, x + 39, 12, 1); b.arc(x + 42, x + 46, 14, 1);
+    pit(b, x + 12, x + 51);
+    b.ground(x + 52, x + 70, 19);
+    b.checkpoint(x + 55, 18);
+    b.decor('A', x + 61, 18); b.mummy(x + 66, 18);
+    b.coins(x + 58, x + 64, 17);
+    // Wolkenaufzug: Faehre nach oben, Wolkenweg hoch ueber der Grube
+    b.mover(2, [[x + 72, 18], [x + 72, 9]], 2.1);
+    b.coins(x + 72, x + 73, 13);
+    b.cloud(x + 76, x + 80, 9); b.cloud(x + 84, x + 87, 8);
+    b.island(x + 91, x + 98, 9, 3);
+    b.decor('b', x + 92, 8); b.mummy(x + 96, 8);
+    b.cloud(x + 102, x + 105, 12); b.cloud(x + 108, x + 111, 15);
+    b.coins(x + 76, x + 80, 8); b.coins(x + 84, x + 87, 7); b.arc(x + 98, x + 102, 9, 1); b.arc(x + 105, x + 108, 12, 1);
+    pit(b, x + 71, x + 113);
+    b.ground(x + 114, x + 129, 19);
+    b.mummy(x + 121, 18); b.coins(x + 116, x + 119, 17);
+    b.decor('r', x + 126, 18);
+  }
+
   return b.section('Wolkenpfad');
 }

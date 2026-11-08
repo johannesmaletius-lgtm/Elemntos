@@ -58,7 +58,8 @@ export class Level {
       }
       for (const o of sec.objects || []) {
         const c = { ...o, x: o.x + x0, y: o.y + pad };
-        if (o.range) c.range = [o.range[0] + x0, o.range[1] + x0];
+        // Geister: range = [x0, x1] (Strecke); Feuerspeier: range = Zahl (max. Flammenweite)
+        if (Array.isArray(o.range)) c.range = [o.range[0] + x0, o.range[1] + x0];
         objects.push(c);
       }
       sec.x0 = x0;
@@ -262,6 +263,28 @@ export class MapBuilder {
   }
   // bewegliche Plattform: x,y = linke obere Ecke, Pfad als Punkte
   mover(w, path, speed = 2.5, opts = {}) { this.movers.push({ w, path, speed, ...opts }); return this; }
+  // Fuegt bei Spalte x0 n leere Spalten ein; alles ab x0 (Kacheln, Plattformen,
+  // Objekte) rutscht um n nach rechts. Danach kann der neue Abschnitt in
+  // x0..x0+n-1 gebaut werden. Mehrere Einschuebe am besten von rechts nach links.
+  splice(x0, n) {
+    for (const r of this.g) r.splice(x0, 0, ...new Array(n).fill(' '));
+    this.W += n;
+    for (const m of this.movers) {
+      const xs = m.path.map(p => p[0]);
+      const lo = Math.min(...xs), hi = Math.max(...xs) + (m.w || 3);
+      if (lo >= x0) { m.path = m.path.map(([px, py]) => [px + n, py]); if (m.hub) m.hub = [m.hub[0] + n, m.hub[1]]; }
+      else if (hi > x0) throw new Error(`splice(${x0}) schneidet eine bewegliche Plattform (${lo}-${hi})`);
+    }
+    for (const o of this.objects) {
+      const span = Array.isArray(o.range);
+      const lo = span ? Math.min(o.x, o.range[0]) : o.x, hi = span ? Math.max(o.x, o.range[1]) : o.x;
+      if (lo >= x0) { o.x += n; if (span) o.range = [o.range[0] + n, o.range[1] + n]; }
+      else if (hi >= x0) throw new Error(`splice(${x0}) schneidet ein Objekt (${o.kind} ${lo}-${hi})`);
+    }
+    return this;
+  }
+  // Inhalt einer Spalte (zum Pruefen der Anschluesse)
+  column(x) { return this.g.map(r => r[x]).join(''); }
   rows() { return this.g.map(r => r.join('')); }
   section(name) { return { name, rows: this.rows(), movers: this.movers, objects: this.objects }; }
 }

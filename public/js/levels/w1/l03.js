@@ -111,5 +111,58 @@ export default function build() {
   b.goal(386, 18);
   b.decor('T', 394, 18);
 
+  // ===== Neu (eingeschoben, von rechts nach links): =====
+  // B) Riesenpilz-Stufen und Lichtung (vor dem Ziel)
+  {
+    const x = 346;
+    b.splice(x, 100);
+    b.ground(x, x + 9, 19);
+    b.checkpoint(x + 3, 18);
+    b.coins(x + 5, x + 8, 17);
+    pit(b, x + 10, x + 61);
+    b.island(x + 11, x + 13, 18, 1); b.spring(x + 12, 17);
+    b.coins(x + 12, x + 12, 13);
+    b.island(x + 17, x + 24, 11, 2);
+    b.coins(x + 18, x + 21, 10); b.mummy(x + 23, 10);
+    b.island(x + 28, x + 29, 16, 1); b.spring(x + 28, 15);
+    b.coins(x + 29, x + 29, 11);
+    b.island(x + 33, x + 40, 8, 2);
+    b.decor('b', x + 34, 7); b.mummyTall(x + 38, 7);
+    b.coins(x + 34, x + 37, 7);
+    b.cloud(x + 44, x + 47, 11); b.cloud(x + 51, x + 54, 14); b.cloud(x + 57, x + 60, 17);
+    b.arc(x + 40, x + 44, 9, 1); b.arc(x + 47, x + 51, 12, 1); b.arc(x + 54, x + 57, 15, 1);
+    b.ground(x + 62, x + 99, 19);
+    b.decor('T', x + 64, 18); b.decor('b', x + 72, 18); b.decor('T', x + 82, 18); b.decor('r', x + 90, 18);
+    b.mummy(x + 69, 18); b.mummy(x + 86, 18); b.mummyTall(x + 94, 18);
+    b.spring(x + 76, 18);
+    b.plank(x + 78, x + 83, 11); b.coins(x + 78, x + 83, 10);
+    b.coins(x + 65, x + 68, 17); b.coins(x + 88, x + 92, 17);
+  }
+  // A) Sporen-Schlucht: Pilze, Broeckelsteine, Faehre (vor den Pilztuermen)
+  {
+    const x = 161;
+    b.splice(x, 95);
+    b.ground(x, x + 6, 19);
+    b.coins(x + 2, x + 5, 17);
+    pit(b, x + 7, x + 68);
+    b.island(x + 9, x + 11, 18, 1); b.spring(x + 10, 17);
+    b.island(x + 15, x + 21, 10, 2);
+    b.coins(x + 15, x + 18, 9); b.mummy(x + 20, 9);
+    b.crumble(x + 25, x + 26, 11); b.crumble(x + 29, x + 30, 12);
+    b.coins(x + 25, x + 26, 10); b.coins(x + 29, x + 30, 11);
+    b.island(x + 33, x + 35, 15, 1); b.spring(x + 34, 14);
+    b.island(x + 39, x + 46, 9, 2);
+    b.decor('b', x + 40, 8); b.mummy(x + 44, 8);
+    b.coins(x + 41, x + 43, 8);
+    b.cloud(x + 50, x + 53, 12); b.coins(x + 50, x + 53, 11);
+    b.mover(3, [[x + 56, 14], [x + 63, 14]], 2.3);
+    b.coins(x + 57, x + 64, 12);
+    b.ground(x + 69, x + 94, 19);
+    b.checkpoint(x + 72, 18);
+    b.decor('T', x + 84, 18); b.decor('r', x + 76, 18);
+    b.mummy(x + 80, 18); b.mummy(x + 90, 18);
+    b.coins(x + 77, x + 82, 17);
+  }
+
   return b.section('Pilzhain');
 }

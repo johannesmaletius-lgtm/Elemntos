@@ -131,5 +131,57 @@ export default function build() {
   b.goal(416, 18);
   b.decor('T', 424, 18);
 
+  // ===== Neu (eingeschoben, von rechts nach links): =====
+  // B) Sturmgipfel: Rueckenwind-Sprung, Gegenwind-Stege, Broeckelbruecke (vor dem Tor)
+  {
+    const x = 391;
+    b.splice(x, 90);
+    b.ground(x, x + 7, 19);
+    b.checkpoint(x + 3, 18);
+    b.wind(x + 8, x + 17, 10, 18, 1);
+    pit(b, x + 8, x + 17);
+    b.arc(x + 7, x + 18, 14, 3);
+    b.ground(x + 18, x + 24, 19);
+    b.mummy(x + 22, 18);
+    b.wind(x + 25, x + 50, 11, 16, -1);
+    b.plank(x + 26, x + 31, 17); b.island(x + 34, x + 37, 16, 2); b.plank(x + 40, x + 45, 15);
+    b.coins(x + 27, x + 30, 16); b.coins(x + 34, x + 37, 15); b.coins(x + 41, x + 44, 14);
+    b.island(x + 48, x + 52, 17, 3);
+    b.mummy(x + 51, 16);
+    pit(b, x + 25, x + 47);
+    b.wind(x + 53, x + 62, 12, 16, 1);
+    b.crumble(x + 55, x + 62, 17);
+    b.coins(x + 55, x + 62, 15);
+    pit(b, x + 53, x + 62);
+    b.ground(x + 63, x + 89, 19);
+    b.decor('A', x + 68, 18); b.decor('b', x + 82, 18);
+    b.spring(x + 74, 18);
+    b.cloud(x + 76, x + 80, 11); b.coins(x + 76, x + 80, 10);
+    b.mummyTall(x + 79, 18); b.mummy(x + 87, 18);
+    b.coins(x + 64, x + 67, 17);
+  }
+  // A) Windmuehlen-Grat: Aufwind, Rueckenwind oben, Stege hinab (nach der Broeckelbruecke)
+  {
+    const x = 220;
+    b.splice(x, 90);
+    b.ground(x, x + 5, 19);
+    b.coins(x + 1, x + 4, 17);
+    b.updraft(x + 7, x + 10, 6, 20);
+    b.coins(x + 8, x + 8, 15); b.coins(x + 9, x + 9, 11);
+    b.wind(x + 11, x + 30, 3, 7, 1);
+    b.cloud(x + 14, x + 17, 8); b.cloud(x + 22, x + 25, 8);
+    b.coins(x + 14, x + 17, 7); b.coins(x + 22, x + 25, 7); b.arc(x + 17, x + 22, 6, 1);
+    b.island(x + 29, x + 38, 8, 3);
+    b.decor('i', x + 31, 7); b.mummy(x + 35, 7);
+    b.plank(x + 42, x + 46, 11); b.plank(x + 50, x + 54, 14); b.crumble(x + 57, x + 59, 16);
+    b.coins(x + 42, x + 46, 10); b.coins(x + 50, x + 54, 13); b.coins(x + 57, x + 59, 15);
+    pit(b, x + 6, x + 61);
+    b.ground(x + 62, x + 89, 19);
+    b.checkpoint(x + 65, 18);
+    b.decor('T', x + 78, 18); b.decor('r', x + 70, 18);
+    b.mummy(x + 73, 18); b.mummy(x + 85, 18);
+    b.coins(x + 80, x + 84, 17);
+  }
+
   return b.section('Sturmbrücken');
 }

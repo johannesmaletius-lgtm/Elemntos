@@ -116,5 +116,53 @@ export default function build() {
   b.goal(404, 18);
   b.decor('T', 413, 18);
 
+  // ===== Neu (eingeschoben, von rechts nach links): =====
+  // B) Palasthof: Speier am Boden, Treppenhaus, Stege ueber Dornenbeeten (vor dem Tor)
+  {
+    const x = 365;
+    b.splice(x, 85);
+    b.ground(x, x + 84, 19);
+    b.checkpoint(x + 2, 18);
+    b.spitter(x + 14, 18, -1, 2.4, 0.3, 6.5, 10);
+    b.coins(x + 6, x + 11, 16);
+    b.stone(x + 18, x + 21, 16, 18); b.stone(x + 22, x + 25, 13, 18);
+    b.mummy(x + 24, 12);
+    b.coins(x + 18, x + 21, 15);
+    b.thorns(x + 26, x + 37, 18);
+    b.plank(x + 29, x + 34, 13); b.coins(x + 29, x + 34, 12);
+    b.stone(x + 38, x + 41, 11, 18);
+    b.spitter(x + 41, 10, 1, 2.6, 1.0);
+    b.coins(x + 38, x + 40, 10);
+    b.thorns(x + 42, x + 53, 18);
+    b.plank(x + 45, x + 50, 13); b.coins(x + 45, x + 50, 12);
+    b.stone(x + 54, x + 57, 15, 18);
+    b.coins(x + 54, x + 57, 14);
+    b.decor('A', x + 66, 18); b.decor('i', x + 80, 18);
+    b.mummyTall(x + 62, 18); b.mummy(x + 74, 18);
+    b.coins(x + 68, x + 73, 17);
+  }
+  // A) Marktdaecher: Daecher, Broeckelbruecke, Speier, Faehre (vor der Bruecke der Speier)
+  {
+    const x = 239;
+    b.splice(x, 85);
+    b.ground(x, x + 3, 19);
+    pit(b, x + 4, x + 70);
+    b.stone(x + 5, x + 10, 16, 23);
+    b.stone(x + 14, x + 18, 13, 23); b.mummy(x + 16, 12);
+    b.crumble(x + 19, x + 24, 13);
+    b.stone(x + 25, x + 30, 13, 23);
+    b.spitter(x + 30, 12, 1, 2.6, 0.5, 6.5, 9);
+    b.stone(x + 34, x + 39, 15, 23);
+    b.mover(3, [[x + 42, 14], [x + 50, 14]], 2.4);
+    b.stone(x + 56, x + 61, 12, 23); b.decor('i', x + 59, 11);
+    b.stone(x + 65, x + 70, 15, 23); b.mummy(x + 68, 14);
+    b.coins(x + 6, x + 9, 15); b.coins(x + 14, x + 17, 12); b.coins(x + 19, x + 24, 11); b.coins(x + 26, x + 29, 12);
+    b.coins(x + 34, x + 38, 14); b.coins(x + 43, x + 51, 12); b.coins(x + 57, x + 60, 11);
+    b.arc(x + 10, x + 14, 13, 1); b.arc(x + 61, x + 65, 11, 1);
+    b.ground(x + 71, x + 84, 19);
+    b.checkpoint(x + 74, 18);
+    b.coins(x + 77, x + 82, 17);
+  }
+
   return b.section('Ruinenstadt');
 }

@@ -115,5 +115,66 @@ export default function build() {
   b.goal(426, 18);
   b.decor('T', 434, 18);
 
+  // ===== Neu (eingeschoben, von rechts nach links): =====
+  // B) Glockenturm-Aufstieg: Aufzug, zwei Raeder, Geist, Wolke (vor dem Glockentor)
+  {
+    const x = 391;
+    b.splice(x, 135);
+    b.ground(x, x + 6, 19);
+    b.checkpoint(x + 3, 18);
+    b.mover(2, [[x + 8, 18], [x + 8, 9]], 2.2);
+    b.coins(x + 8, x + 9, 13);
+    b.island(x + 12, x + 19, 9, 2);
+    b.decor('i', x + 13, 8); b.mummy(x + 17, 8);
+    b.coins(x + 14, x + 16, 8);
+    b.wheel(x + 27, 11, 4, 3, 3, 2.0, 1);
+    b.coins(x + 26, x + 28, 5);
+    b.island(x + 35, x + 40, 11, 2);
+    b.ghost(x + 38, 7, x + 33, x + 44);
+    b.coins(x + 35, x + 40, 10);
+    b.wheel(x + 50, 13, 4, 3, 3, 2.1, -1);
+    b.coins(x + 49, x + 51, 7);
+    b.cloud(x + 58, x + 61, 15); b.coins(x + 58, x + 61, 14);
+    pit(b, x + 7, x + 64);
+    b.ground(x + 65, x + 104, 19);
+    b.decor('A', x + 80, 18); b.decor('b', x + 68, 18); b.decor('T', x + 99, 18);
+    b.mummy(x + 72, 18); b.mummyTall(x + 92, 18);
+    b.wheel(x + 86, 12, 3, 2, 2, 1.8, 1);
+    b.coins(x + 85, x + 87, 7);
+    b.coins(x + 74, x + 78, 17);
+    // Glockenstufen: Treppe hinauf, Broeckelbruecke ueber Dornen, wieder hinab
+    b.ground(x + 105, x + 134, 19);
+    b.stone(x + 108, x + 111, 16, 18); b.stone(x + 112, x + 115, 13, 18);
+    b.thorns(x + 116, x + 121, 18); b.crumble(x + 116, x + 121, 13);
+    b.stone(x + 122, x + 125, 13, 18); b.stone(x + 126, x + 129, 16, 18);
+    b.coins(x + 108, x + 111, 15); b.coins(x + 112, x + 115, 12); b.coins(x + 116, x + 121, 11); b.coins(x + 122, x + 125, 12); b.coins(x + 126, x + 129, 15);
+    b.mummy(x + 124, 12); b.mummy(x + 132, 18);
+  }
+  // A) Zahnrad-Schlucht: Pendel, Doppelrad mit Geist, Broeckeltreppe (nach dem Zahnradgarten)
+  {
+    const x = 209;
+    b.splice(x, 105);
+    b.ground(x, x + 4, 19);
+    b.mover(3, [[x + 6, 16], [x + 14, 12], [x + 22, 16]], 2.6);
+    b.coins(x + 9, x + 21, 11);
+    b.island(x + 26, x + 31, 15, 2); b.mummy(x + 29, 14);
+    b.coins(x + 26, x + 28, 14);
+    b.wheel(x + 38, 12, 4, 3, 3, 2.0, 1);
+    b.wheel(x + 51, 10, 4, 3, 3, 2.0, -1);
+    b.ghost(x + 44, 15, x + 41, x + 48);
+    b.coins(x + 37, x + 39, 6); b.coins(x + 50, x + 52, 4);
+    b.island(x + 58, x + 64, 11, 3);
+    b.decor('i', x + 59, 10); b.mummy(x + 63, 10);
+    b.coins(x + 60, x + 62, 10);
+    b.crumble(x + 67, x + 68, 13); b.crumble(x + 71, x + 72, 15); b.crumble(x + 75, x + 76, 17);
+    b.coins(x + 67, x + 68, 12); b.coins(x + 71, x + 72, 14); b.coins(x + 75, x + 76, 16);
+    pit(b, x + 5, x + 80);
+    b.ground(x + 81, x + 104, 19);
+    b.checkpoint(x + 84, 18);
+    b.decor('b', x + 88, 18); b.decor('r', x + 98, 18);
+    b.mummy(x + 93, 18);
+    b.coins(x + 89, x + 92, 17);
+  }
+
   return b.section('Uhrwerk-Inseln');
 }
