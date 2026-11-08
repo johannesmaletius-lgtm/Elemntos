@@ -59,6 +59,23 @@ Tropfen und lässt Bläschen aufsteigen, Erde wirbelt Kiesel und Blätter auf, u
 Feuer-Figur steigt Glut. Auch Landungen sehen je Element anders aus. Nachts leuchten die Figuren in ihrer
 Elementfarbe und bekommen ein Randlicht.
 
+### Animationen
+
+Die Figuren sind aus Einzelteilen gebaut (Rumpf, Ober- und Unterschenkel, Unterarme, Schal) und werden
+in `js/anim.js` animiert:
+
+- **Bodenkontakt:** Das Rig rechnet aus den Beinwinkeln aus, wo die Sohlen sind, und setzt die tiefste Sohle
+  genau auf den Boden. Gespreizte Beine senken die Hüfte, ein gestrecktes Standbein hebt sie – nichts schwebt
+  oder versinkt.
+- **Gehen und Rennen** laufen über Keyframe-Zyklen (Fersenaufsatz, Abfedern, Abdruck, Durchschwung, beim Rennen
+  mit Flugphase). Die Schrittphase hängt an der zurückgelegten Strecke; Gehen geht stufenlos ins Rennen über.
+- **Sprung:** stufenlos von Steigen über Scheitel bis Fallen; aus vollem Lauf wird ein Weitsprung daraus.
+  Die Landung federt (staucht mit gebeugten Knien und schwingt nach), der Absprung streckt.
+- **Gewicht:** beim Beschleunigen nach vorn, beim Bremsen nach hinten lehnen; bei Seitenwind dagegen lehnen.
+- **Wende:** beim Bremsen schaut die Figur noch in die alte Richtung und stemmt sich dagegen, dann klappt sie um.
+- Außerdem: gegen Wände **schieben**, **Feuerball-Wurf** mit Ausholen, Atmen und Gewicht verlagern im Stand
+  (nach ein paar Sekunden ab und zu Wippen), **Jubeln** im Ziel und ein Rückwärts-Sturz beim **Tod**.
+
 ## Gegner: Mumien
 
 | Gegner | Verhalten | Besiegen |
@@ -199,4 +216,6 @@ node tools/build_preview.mjs               # Einzeldatei-Vorschau (nur Einzelspi
                                            # braucht esbuild (npm i -g esbuild oder ESBUILD=/pfad/esbuild)
 ```
 Im Browser (bei laufendem Server): `/dev/overview.html?m=3` zeigt Level 4 als Übersicht,
-`/dev/rigtest.html` alle Animations-Posen der Figuren.
+`/dev/rigtest.html` alle Animations-Posen der Figuren, `/dev/rigtest.html?film=jump` einen Ablauf als
+Filmstreifen (auch `start`, `runjump`, `turn`, `stop`, `land`, `throw`, `dead`, `double`, `push`) und
+`/dev/rigtest.html?live=1` alle Abläufe als laufende Animation.

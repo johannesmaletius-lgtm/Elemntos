@@ -22,7 +22,7 @@ export class RemotePlayer {
     this.id = id; this.charId = charId; this.name = name;
     this.w = PHYS.w; this.h = PHYS.h;
     this.x = 0; this.y = 0; this.vx = 0; this.vy = 0; this.facing = 1;
-    this.onGround = true; this.gliding = false; this.skid = false; this.dead = false; this.finished = false;
+    this.onGround = true; this.gliding = false; this.skid = false; this.pushing = false; this.dead = false; this.finished = false;
     this.dashT = 0; this.throwT = 0; this.pound = null; this.flipT = 0; this.flipDur = 0.36; this.invuln = 0; this.deadT = 0;
     this.buf = []; this.anim = createAnimState(); this.dx = 0; this.dy = 0;
     this.coins = 0; this.deaths = 0; this.remote = true; this.seen = false;
@@ -55,7 +55,7 @@ export class RemotePlayer {
     this.vx = b[2]; this.vy = b[3]; this.facing = b[4];
     const f = b[5];
     this.onGround = !!(f & 1); this.gliding = !!(f & 2); this.skid = !!(f & 4); this.dead = !!(f & 8);
-    this.finished = !!(f & 16); this.dashT = (f & 32) ? 0.1 : 0; this.throwT = (f & 64) ? 0.1 : 0;
+    this.finished = !!(f & 16); this.dashT = (f & 32) ? 0.1 : 0; this.throwT = (f & 64) ? 0.1 : 0; this.pushing = !!(f & 128);
     this.pound = b[6] === 1 ? 'windup' : b[6] === 2 ? 'slam' : null;
     this.flipT = b[7]; this.invuln = b[8]; this.deadT = b[9] + ex;
     this.tx = b[0] + b[2] * ex;
