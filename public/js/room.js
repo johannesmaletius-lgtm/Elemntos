@@ -41,6 +41,7 @@ export class Room {
     this.events = [];
     this.keys = new Set();
     this.map = 0;
+    this.sel = 0;                // auf der Karte ausgewaehltes Level
     this.nextId = 1;
   }
 
@@ -48,8 +49,8 @@ export class Room {
 
   lobbyMsg() {
     return {
-      type: 'lobby', room: this.code, hostId: this.hostId, phase: this.phase, levelStart: this.levelStart,
-      players: [...this.players.values()].map(p => ({ id: p.id, name: p.name, charId: p.charId })),
+      type: 'lobby', room: this.code, hostId: this.hostId, phase: this.phase, levelStart: this.levelStart, sel: this.sel, map: this.map,
+      players: [...this.players.values()].map(p => ({ id: p.id, name: p.name, charId: p.charId, unlocked: p.unlocked })),
     };
   }
 
@@ -69,7 +70,7 @@ export class Room {
       conn.send({ type: 'error', msg: 'Der Raum ist schon voll (4 Spieler).', fatal: true });
       return null;
     }
-    const p = { id: 'p' + this.nextId++, conn, name: cleanName(msg.name), charId: this.freeChar(msg.charId) };
+    const p = { id: 'p' + this.nextId++, conn, name: cleanName(msg.name), charId: this.freeChar(msg.charId), unlocked: Math.max(1, Math.min(99, msg.unlocked | 0)) };
     this.players.set(p.id, p);
     if (asHost || !this.hostId) this.hostId = p.id;
     conn.send({ type: 'joined', room: this.code, id: p.id, host: this.hostId === p.id });
@@ -90,19 +91,43 @@ export class Room {
         this.broadcast(this.lobbyMsg());
         return;
       }
+      case 'prog': {
+        p.unlocked = Math.max(p.unlocked || 1, Math.min(99, msg.unlocked | 0));
+        this.broadcast(this.lobbyMsg());
+        return;
+      }
+      case 'sel': {
+        if (p.id !== this.hostId || this.phase === 'play') return;
+        this.sel = Math.max(0, msg.map | 0);
+        this.broadcast(this.lobbyMsg());
+        return;
+      }
+      case 'tomap': {
+        if (p.id !== this.hostId) return;
+        this.phase = 'lobby';
+        this.events = []; this.keys = new Set();
+        this.broadcast({ type: 'tomap', sel: this.sel });
+        this.broadcast(this.lobbyMsg());
+        return;
+      }
       case 'start': {
         if (p.id !== this.hostId) return;
+        if ([...this.players.values()].some(o => !o.charId)) return;
         this.phase = 'play';
         this.levelStart = this.now() + 600;
         this.events = []; this.keys = new Set();
         this.map = msg.map | 0;
+        this.sel = this.map;
         this.broadcast({ type: 'start', levelStart: this.levelStart, map: this.map, players: this.lobbyMsg().players, events: [] });
         this.broadcast(this.lobbyMsg());
         return;
       }
-      case 'st':
-        this.broadcast({ type: 'st', id: p.id, t: msg.t, s: msg.s }, p);
+      case 'st': {
+        // Positionen: ueber den schnellen (ungeordneten) Kanal, falls vorhanden
+        const out = { type: 'st', id: p.id, t: msg.t, s: msg.s };
+        for (const o of this.players.values()) if (o !== p) (o.conn.sendFast || o.conn.send)(out);
         return;
+      }
       case 'fx':
         this.broadcast({ type: 'fx', id: p.id, fx: msg.fx }, p);
         return;

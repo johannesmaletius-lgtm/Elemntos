@@ -10,6 +10,7 @@ import * as E from '../js/entities.js';
 const q = new URLSearchParams(location.search);
 const s = +(q.get('s') || 12), strip = +(q.get('strip') || 135), from = +(q.get('from') || 0), to = +(q.get('to') || 9999);
 const lv = new Level(WORLD1.maps[+(q.get('m') || 0)]);
+const flames = lv.flamesAt(+(q.get('t') || 1.2));
 const tr = new TileRenderer(lv);
 const W = strip * s, end = Math.min(lv.w, to), n = Math.ceil((end - from) / strip);
 const c = document.getElementById('c'); c.width = W; c.height = n * (lv.h * s + 16);
@@ -21,9 +22,20 @@ for (let i = 0; i < n; i++) {
   ctx.beginPath(); ctx.rect(0, 0, W, lv.h * s); ctx.clip();
   const g = ctx.createLinearGradient(0, 0, 0, lv.h * s); g.addColorStop(0, '#1d8cf8'); g.addColorStop(1, '#a8dcff');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, lv.h * s);
+  E.drawWaterfalls(ctx, lv, x0, 0, s, strip, lv.h, 0.5);
   tr.draw(ctx, x0, 0, s, strip, lv.h);
   tr.drawDynamic(ctx, x0, 0, s, strip, lv.h);
   E.drawUpdrafts(ctx, lv, x0, 0, s, strip, lv.h, 0.5);
+  E.drawWind(ctx, lv, x0, 0, s, strip, lv.h, 0.5);
+  for (const sp of lv.spitters) E.drawSpitter(ctx, sp, x0, 0, s, 1.2);
+  for (const f of flames) E.drawFlame(ctx, f, x0, 0, s, 0);
+  for (const e of lv.enemySpawns) {
+    ctx.fillStyle = e.type === 'ghost' ? 'rgba(160,230,255,.9)' : e.type === 'mummyTall' ? '#c9a' : '#eee';
+    const hh = e.type === 'mummyTall' ? 2 : 1;
+    ctx.fillRect((e.x - x0 + 0.1) * s, (e.y + 1 - hh) * s, 0.8 * s, hh * s);
+    if (e.range) { ctx.fillStyle = 'rgba(160,230,255,.5)'; ctx.fillRect((e.range[0] - x0) * s, (e.y + 0.4) * s, (e.range[1] - e.range[0] + 1) * s, 2); }
+  }
+  for (const h of lv.hubs) E.drawHub(ctx, h, lv.movers, x0, 0, s, 0);
   for (const m of lv.movers) {
     // Pfad
     ctx.strokeStyle = 'rgba(255,255,0,.8)'; ctx.setLineDash([4, 3]); ctx.beginPath();
@@ -37,6 +49,8 @@ for (let i = 0; i < n; i++) {
   for (const sp of lv.springs) E.drawSpring(ctx, sp, x0, 0, s);
   for (const co of lv.coins) E.drawCoin(ctx, co, x0, 0, s, 0);
   for (const gm of lv.gems) E.drawGem(ctx, gm, x0, 0, s, 0);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 14px sans-serif';
+  if (i === 0) ctx.fillText(lv.name + ' (' + lv.theme + ')', 4, lv.h * s - 6);
   // Raster + Spalten-Nummern
   ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.font = `${Math.max(9, s * 0.8)}px monospace`;
   for (let x = Math.ceil(x0 / 5) * 5; x < x0 + strip; x += 5) {
