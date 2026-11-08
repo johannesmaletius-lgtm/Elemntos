@@ -99,6 +99,7 @@ export class Level {
     // Feuerspeier (Steinkoepfe, die regelmaessig Flammen spucken) und fliegende Geister
     this.spitters = [];
     this.hubs = [];
+    const ghosts = [];
     for (const o of objects) {
       if (o.kind === 'spitter') {
         this.tiles[o.y * W + o.x] = T.STONE;
@@ -110,9 +111,17 @@ export class Level {
       } else if (o.kind === 'hub') {
         this.hubs.push({ x: o.x, y: o.y, r: o.r });
       } else if (o.kind === 'ghost') {
-        this.enemySpawns.push({ type: 'ghost', x: o.x, y: o.y, range: o.range });
+        ghosts.push({ type: 'ghost', x: o.x, y: o.y, range: o.range });
+      } else if (o.kind === 'mummy' || o.kind === 'mummyTall') {
+        this.enemySpawns.push({ type: o.kind, x: o.x, y: o.y });
+      } else if (o.kind === 'decor' && DECOR_CHARS[o.ch]) {
+        this.decor.push({ type: DECOR_CHARS[o.ch], x: o.x, y: o.y });
       }
     }
+    // Reihenfolge wie beim zeilenweisen Einlesen (Gegner-IDs sind im Mehrspieler fuer alle gleich)
+    const rowMajor = (a, b) => a.y - b.y || a.x - b.x;
+    this.enemySpawns.sort(rowMajor).push(...ghosts);
+    this.decor.sort(rowMajor);
     this.totalCoins = this.coins.length;
     this.totalGems = this.gems.length;
     // Rankenwaende brennen, rissige Steine brechen: Zustand fuer Effekte
@@ -237,10 +246,13 @@ export class MapBuilder {
   checkpoint(x, y) { return this.put(x, y, 'C'); }
   goal(x, y) { return this.put(x, y, 'G'); }
   start(x, y) { return this.put(x, y, 'P'); }
-  decor(ch, x, y) { return this.put(x, y, ch); }
+  // Deko und Gegner liegen nicht im Kachelraster, sondern als Objekte darueber:
+  // so kann eine Muenzreihe sie nicht versehentlich ueberschreiben (und umgekehrt).
+  decor(ch, x, y) { return this._obj({ kind: 'decor', ch, x, y }); }
   // Gegner: y = Zeile direkt ueber dem Boden
-  mummy(x, y) { return this.put(x, y, 'e'); }
-  mummyTall(x, y) { return this.put(x, y, 'E'); }
+  mummy(x, y) { return this._obj({ kind: 'mummy', x, y }); }
+  mummyTall(x, y) { return this._obj({ kind: 'mummyTall', x, y }); }
+  _obj(o) { if (o.x >= 0 && o.x < this.W && o.y >= 0 && o.y < this.H) this.objects.push(o); return this; }
   // fliegende Geister-Mumie: schwebt zwischen x0 und x1 auf Hoehe y (Fuesse)
   ghost(x, y, x0, x1) { this.objects.push({ kind: 'ghost', x, y, range: [x0, x1] }); return this; }
   // Feuerspeier: Steinkopf bei (x,y), spuckt in Richtung dir (+1/-1) alle period Sekunden

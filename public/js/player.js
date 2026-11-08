@@ -71,7 +71,8 @@ export class Player {
     if (this.ride && this.onGround) {
       this._moveX(this.ride.dx, game);
       this.y += this.ride.dy;
-      if (this.ride.dy > 0) this.y = this.ride.y; // nicht abheben beim Absenken
+      // nicht abheben beim Absenken (bei Mitspielern ist der Kopf die Standflaeche, nicht die Fuesse)
+      if (this.ride.dy > 0) this.y = this.ride.remote ? this.ride.top : this.ride.y;
     }
 
     // ---- Faehigkeiten ----
