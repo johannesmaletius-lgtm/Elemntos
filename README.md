@@ -45,6 +45,7 @@ die direkte Verbindung scheitern – dann hilft der Node-Server (siehe unten).
 ### Mit Freunden spielen
 1. Spiel öffnen → **Mit Freunden spielen** → Figur wählen → **Raum erstellen**.
 2. **Link teilen** (WhatsApp usw.) – Freunde tippen den Link an, wählen ein freies Element.
+   Alternativ den **Raum-Code** (4 Zeichen) weitersagen: Freunde geben ihn im Startmenü ein und tippen **Beitreten**.
 3. Gastgeber drückt **Spiel starten**. Bis zu 4 Spieler, später Dazukommende steigen am Checkpoint ein.
 
 ### Lokal am PC / mit eigenem Server (optional)
