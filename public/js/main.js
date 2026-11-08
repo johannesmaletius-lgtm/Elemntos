@@ -138,6 +138,30 @@ function goTitle() {
 
 $('#btn-solo').onclick = () => { initAudio(); state.mode = 'solo'; openSelect(); };
 $('#btn-host').onclick = () => { initAudio(); state.mode = 'host'; openSelect(); };
+// Raum-Code eintippen (oder einen Einladungslink einfuegen)
+function parseCode(v) {
+  const s = String(v || '');
+  const m = s.match(/[?&](?:raum|room)=([A-Za-z0-9]+)/);
+  return (m ? m[1] : s).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+}
+$('#inp-code').addEventListener('paste', (e) => {
+  const txt = (e.clipboardData || window.clipboardData)?.getData('text');
+  if (!txt) return;
+  e.preventDefault();
+  e.target.value = parseCode(txt);
+});
+$('#inp-code').addEventListener('input', (e) => {
+  const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  if (v !== e.target.value) e.target.value = v;
+});
+$('#join-form').onsubmit = (e) => {
+  e.preventDefault();
+  initAudio();
+  const c = parseCode($('#inp-code').value);
+  if (c.length !== 4) { message('Raum-Code', 'Bitte den 4-stelligen Raum-Code eingeben.'); return; }
+  $('#inp-code').blur();
+  state.mode = 'join'; state.joinCode = c; openSelect();
+};
 $('#btn-mute').onclick = () => { initAudio(); setMuted(!isMuted()); updateMuteButtons(); };
 $('#btn-mute2').onclick = () => { setMuted(!isMuted()); updateMuteButtons(); };
 updateMuteButtons();
@@ -233,7 +257,7 @@ function onLobby(m) {
   $('#btn-lobby-start').textContent = isHost ? `Spiel starten (${n}/4)` : 'Warte auf Host …';
   const p2pHost = state.net.mode === 'p2p-host';
   $('#lobby-hint').textContent = isHost
-    ? `Teile den Link mit bis zu 3 Freunden. Jeder wählt ein anderes Element.${p2pHost ? ' Lass diese Seite offen – dein Gerät ist der Raum.' : ''}`
+    ? `Teile den Link oder den Raum-Code ${m.room} mit bis zu 3 Freunden. Jeder wählt ein anderes Element.${p2pHost ? ' Lass diese Seite offen – dein Gerät ist der Raum.' : ''}`
     : 'Wähle ein freies Element. Der Host startet das Spiel.';
 }
 

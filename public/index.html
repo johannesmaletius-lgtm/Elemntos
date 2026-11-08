@@ -48,7 +48,12 @@
       <div class="title-chars" id="title-chars"></div>
       <button class="btn big" id="btn-solo">Allein spielen</button>
       <button class="btn big alt" id="btn-host">Mit Freunden spielen</button>
-      <p class="small">Bis zu 4 Spieler – lade Freunde per Link ein.</p>
+      <form class="join-row" id="join-form" autocomplete="off">
+        <input id="inp-code" maxlength="4" placeholder="Raum-Code" aria-label="Raum-Code"
+          autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="go">
+        <button class="btn" id="btn-join" type="submit">Beitreten</button>
+      </form>
+      <p class="small">Bis zu 4 Spieler – per Link oder Raum-Code.</p>
       <button class="btn tiny" id="btn-mute">🔊 Ton an</button>
     </div>
   </section>
