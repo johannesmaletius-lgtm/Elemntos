@@ -1,8 +1,9 @@
 // Zentrale Spielkonstanten. Einheiten: Kacheln (Tiles) und Sekunden.
 
 export const TILE_ART = 16;          // Pixel pro Kachel in der Pixel-Art
-export const VIEW_TILES_Y = 11.5;    // sichtbare Kacheln vertikal (Querformat)
-export const MIN_VIEW_TILES_X = 18;  // mindestens so viele Kacheln breit
+export const VIEW_TILES_Y = 14;      // sichtbare Kacheln vertikal (Querformat)
+export const MIN_VIEW_TILES_X = 22;  // mindestens so viele Kacheln breit
+export const MAX_VIEW_TILES_Y = 18;  // im Mehrspieler zoomt die Kamera hoechstens so weit raus
 
 export const PHYS = {
   step: 1 / 120,
@@ -26,6 +27,7 @@ export const PHYS = {
   springPoundV: 31,       // Erd-Stampfer auf Pilz (~12 Kacheln)
   updraftAccel: 95,
   updraftMaxUp: 10.5,
+  windSpeed: 3.2,         // Seitenwind schiebt so schnell (Kacheln/s)
   w: 0.72,                // Hitbox-Breite
   h: 1.55,                // Hitbox-Hoehe
   spriteH: 1.95,          // gezeichnete Figurenhoehe
@@ -33,26 +35,36 @@ export const PHYS = {
 
 export const CHARACTERS = {
   air: {
-    id: 'air', element: 'Luft', color: '#9fdcff', dark: '#3d7fb8',
+    id: 'air', element: 'Luft', color: '#9fdcff', dark: '#3d7fb8', outline: '#122a40', rim: 'rgba(225,248,255,0.85)', glow: '190,235,255',
     ability: 'Doppelsprung', abilityHint: 'In der Luft nochmal springen. Sprung halten = gleiten.',
     icon: '🌪️',
   },
   water: {
-    id: 'water', element: 'Wasser', color: '#3fd6d0', dark: '#1d4f9c',
+    id: 'water', element: 'Wasser', color: '#3fd6d0', dark: '#1d4f9c', outline: '#0b2240', rim: 'rgba(150,250,245,0.8)', glow: '110,235,230',
     ability: 'Wasser-Dash', abilityHint: 'Schneller Sprint durch die Luft – überwindet weite Lücken.',
     icon: '🌊',
   },
   earth: {
-    id: 'earth', element: 'Erde', color: '#9bd25a', dark: '#5a3a1e',
+    id: 'earth', element: 'Erde', color: '#9bd25a', dark: '#5a3a1e', outline: '#24170a', rim: 'rgba(205,240,140,0.8)', glow: '185,235,120',
     ability: 'Stampfer', abilityHint: 'In der Luft nach unten stampfen – zerbricht rissige Steine. Auf Pilzen: Mega-Sprung!',
     icon: '🪨',
   },
   fire: {
-    id: 'fire', element: 'Feuer', color: '#ff8a3d', dark: '#8c1f1f',
-    ability: 'Feuerball', abilityHint: 'Wirft Feuerbälle – verbrennt Rankenwände (und später Gegner).',
+    id: 'fire', element: 'Feuer', color: '#ff8a3d', dark: '#8c1f1f', outline: '#2e0a0a', rim: 'rgba(255,200,120,0.85)', glow: '255,160,80',
+    ability: 'Feuerball', abilityHint: 'Wirft Feuerbälle – verbrennt Rankenwände und besiegt Mumien. Flammen von Feuerspeiern tun dir nichts.',
     icon: '🔥',
     armBScale: 0.22,   // Flammen-Hand bleibt sichtbar
   },
 };
 
 export const CHAR_ORDER = ['air', 'water', 'earth', 'fire'];
+
+// Kristall-Farben: Element-Kristalle gibt es nur mit der passenden Faehigkeit
+export const GEM_COLORS = {
+  skill: { name: 'Geschick', light: '#e3cdff', mid: '#a873ff', dark: '#5a24b0', glow: '220,180,255' },
+  air: { name: 'Luft', light: '#f4fbff', mid: '#9fdcff', dark: '#3d7fb8', glow: '200,235,255' },
+  water: { name: 'Wasser', light: '#c8fffb', mid: '#3fd6d0', dark: '#1d4f9c', glow: '120,240,235' },
+  earth: { name: 'Erde', light: '#e6ffb8', mid: '#9bd25a', dark: '#4f7a1e', glow: '190,240,120' },
+  fire: { name: 'Feuer', light: '#ffe2b0', mid: '#ff8a3d', dark: '#a8261c', glow: '255,170,90' },
+};
+export const GEM_ORDER = ['air', 'water', 'earth', 'fire', 'skill'];

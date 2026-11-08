@@ -43,7 +43,10 @@ export class Net {
 
   _dispatch(msg) {
     if (msg.type === 'pong') { this._pong(msg); return; }
-    if (msg.type === 'joined') { this.id = msg.id; this.room = msg.room; this.host = msg.host; }
+    if (msg.type === 'joined') {
+      this.id = msg.id; this.room = msg.room; this.host = msg.host;
+      if (this.mode === 'p2p-guest') this._openFast();
+    }
     if (msg.type === 'lobby') { this.host = msg.hostId === this.id; }
     if (msg.type === 'start') this.levelStart = msg.levelStart;
     this._emit(msg.type, msg);
@@ -102,12 +105,39 @@ export class Net {
     this.mode = 'p2p-host'; this.connected = true;
     // eigener Spieler: direkte Verbindung ohne Netzwerk
     this.loop = { send: (msg) => { const copy = JSON.parse(JSON.stringify(msg)); queueMicrotask(() => this._dispatch(copy)); } };
-    this.peer.on('connection', (dc) => this._acceptGuest(dc));
+    this.peer.on('connection', (dc) => {
+      if (dc.metadata && dc.metadata.fast) this._acceptFast(dc);
+      else this._acceptGuest(dc);
+    });
     // beim Schliessen der Seite die Gaeste informieren
     this._bye = () => this.roomObj && this.roomObj.broadcast({ type: 'error', msg: 'Der Gastgeber hat das Spiel verlassen.', fatal: true }, this.me);
     window.addEventListener('pagehide', this._bye);
     this.peer.on('disconnected', () => { try { this.peer.reconnect(); } catch {} });
     this.peer.on('error', (e) => console.warn('PeerJS:', e.type || e));
+  }
+
+  // zweiter, ungeordneter Kanal nur fuer Positionen: verlorene Pakete halten
+  // die folgenden nicht auf (kein Ruckeln bei schlechtem Netz)
+  _acceptFast(dc) {
+    const room = this.roomObj;
+    const player = room.players.get(dc.metadata.fast);
+    if (!player || player.fast) { setTimeout(() => { try { dc.close(); } catch {} }, 200); return; }
+    player.fast = dc;
+    dc.on('open', () => { player.conn.sendFast = (msg) => { try { if (dc.open) dc.send(msg); else player.conn.send(msg); } catch {} }; });
+    dc.on('data', (msg) => { if (msg && msg.type === 'st' && room.players.get(player.id) === player) room.message(player, msg); });
+    const gone = () => { if (player.fast === dc) { player.fast = null; delete player.conn.sendFast; } };
+    dc.on('close', gone); dc.on('error', gone);
+  }
+
+  _openFast() {
+    if (this.fdc || !this.peer || !this.code) return;
+    try {
+      const f = this.peer.connect(PEER_PREFIX + this.code, { reliable: false, serialization: 'json', metadata: { fast: this.id } });
+      this.fdc = f;
+      f.on('data', (msg) => { if (msg && typeof msg === 'object') this._dispatch(msg); });
+      f.on('close', () => { if (this.fdc === f) this.fdc = null; });
+      f.on('error', () => { if (this.fdc === f) this.fdc = null; });
+    } catch { this.fdc = null; }
   }
 
   _acceptGuest(dc) {
@@ -124,7 +154,7 @@ export class Net {
       }
       room.message(player, msg);
     });
-    const gone = () => { if (player) { room.remove(player); player = null; } };
+    const gone = () => { if (player) { try { player.fast && player.fast.close(); } catch {} room.remove(player); player = null; } };
     dc.on('close', gone);
     dc.on('error', gone);
   }
@@ -133,7 +163,8 @@ export class Net {
   async _p2pJoin(code) {
     await loadScript('vendor/peerjs.min.js');
     this.peer = await this._openPeer(null);
-    const dc = this.peer.connect(PEER_PREFIX + String(code).toUpperCase(), { reliable: true, serialization: 'json' });
+    this.code = String(code).toUpperCase();
+    const dc = this.peer.connect(PEER_PREFIX + this.code, { reliable: true, serialization: 'json' });
     await new Promise((resolve, reject) => {
       const to = setTimeout(() => reject(new Error('Der Raum wurde nicht gefunden. Ist der Gastgeber noch online?')), 15000);
       dc.on('open', () => { clearTimeout(to); resolve(); });
@@ -163,7 +194,10 @@ export class Net {
     if (this.mode === 'ws') {
       if (this.ws && this.ws.readyState === 1) this.ws.send(JSON.stringify(obj));
     } else if (this.mode === 'p2p-guest') {
-      try { if (this.dc && this.dc.open) this.dc.send(obj); } catch {}
+      try {
+        if (obj.type === 'st' && this.fdc && this.fdc.open) this.fdc.send(obj);
+        else if (this.dc && this.dc.open) this.dc.send(obj);
+      } catch {}
     } else if (this.mode === 'p2p-host') {
       const room = this.roomObj;
       if (obj.type === 'ping') return;
@@ -208,6 +242,7 @@ export class Net {
     clearInterval(this._pingT);
     try { this.ws && this.ws.close(); } catch {}
     try { this.dc && this.dc.close(); } catch {}
+    try { this.fdc && this.fdc.close(); } catch {}
     try { this.peer && this.peer.destroy(); } catch {}
     if (this._bye) window.removeEventListener('pagehide', this._bye);
     void m;

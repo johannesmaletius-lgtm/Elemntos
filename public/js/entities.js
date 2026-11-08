@@ -1,7 +1,8 @@
 // Objekte im Level: Muenzen, Kristalle, Pilz-Trampoline, Checkpoints, Ziel-Tor,
 // Broeckel- und bewegliche Plattformen, Feuerbaelle. Sprites prozedural.
-import { PixBuf, rgb, PAL, TS } from './tiles.js';
-import { mulberry32 } from './util.js';
+import { PixBuf, rgb, PAL, TS, currentBiome } from './tiles.js';
+import { mulberry32, makeCanvas } from './util.js';
+import { GEM_COLORS } from './config.js';
 
 const SPR = {};
 
@@ -20,15 +21,23 @@ function makeCoin() {
   return b.toCanvas();
 }
 
-function makeGem() {
+function shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => Math.max(0, Math.min(255, Math.round(v * k))));
+  return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+function makeGem(el = 'skill') {
+  const G = GEM_COLORS[el] || GEM_COLORS.skill;
   const b = new PixBuf(14, 16);
-  const O = rgb('#3d1466'), D = rgb('#7d3fe0'), M = rgb('#a873ff'), L = rgb('#e3cdff'), W = rgb('#ffffff');
+  const O = rgb(shade(G.dark, 0.55)), D = rgb(G.dark), M = rgb(G.mid), L = rgb(G.light), W = rgb('#ffffff');
+  const DD = rgb(shade(G.dark, 0.8));
   for (let y = 0; y < 16; y++) for (let x = 0; x < 14; x++) {
     const top = y < 6;
     const half = top ? 2 + y : Math.max(0, 7 - Math.floor((y - 5) * 0.75));
     const dx = x - 6.5;
     if (Math.abs(dx) > half) continue;
-    let c = Math.abs(dx) > half - 1 ? O : top ? (dx < 0 ? L : M) : (dx < -1 ? M : dx < 2 ? D : rgb('#5a24b0'));
+    let c = Math.abs(dx) > half - 1 ? O : top ? (dx < 0 ? L : M) : (dx < -1 ? M : dx < 2 ? D : DD);
     if (y === 5 && Math.abs(dx) < half - 1) c = M;
     if (top && dx < -1 && dx > -4 && y > 1 && y < 4) c = W;
     b.set(x, y, c);
@@ -93,7 +102,8 @@ function makeCrumble() {
 export function entitySprites() {
   if (SPR.coin) return SPR;
   SPR.coin = makeCoin();
-  SPR.gem = makeGem();
+  SPR.gem = {};
+  for (const el of Object.keys(GEM_COLORS)) SPR.gem[el] = makeGem(el);
   SPR.mushroom = makeMushroom();
   SPR.crumble = makeCrumble();
   SPR.slabs = {};
@@ -102,8 +112,9 @@ export function entitySprites() {
 
 function slab(w) {
   const S = entitySprites();
-  if (!S.slabs[w]) S.slabs[w] = makeSlab(w);
-  return S.slabs[w];
+  const key = `${currentBiome()}:${w}`;
+  if (!S.slabs[key]) S.slabs[key] = makeSlab(w);
+  return S.slabs[key];
 }
 
 // ---------- Zeichnen ----------
@@ -121,12 +132,16 @@ export function drawGem(ctx, g, camX, camY, s, time) {
   const k = s / TS;
   const bob = Math.sin(time * 2.4 + g.x) * 0.12 * s;
   const x = (g.x - camX) * s, y = (g.y - camY) * s + bob;
+  const G = GEM_COLORS[g.el] || GEM_COLORS.skill;
   // Leuchten
-  const r = s * (0.75 + 0.1 * Math.sin(time * 4));
-  const grd = ctx.createRadialGradient(x, y, 0, x, y, r);
-  grd.addColorStop(0, 'rgba(220,180,255,0.55)'); grd.addColorStop(1, 'rgba(220,180,255,0)');
-  ctx.fillStyle = grd; ctx.fillRect(x - r, y - r, r * 2, r * 2);
-  ctx.drawImage(S.gem, Math.round(x - 7 * k), Math.round(y - 8 * k), Math.round(14 * k), Math.round(16 * k));
+  const r = s * (0.8 + 0.1 * Math.sin(time * 4));
+  drawGlow(ctx, x, y, r, G.glow, 0.7);
+  if (g.el !== 'skill') {
+    // Element-Ring: zeigt, welche Faehigkeit man braucht
+    ctx.strokeStyle = `rgba(${G.glow},0.55)`; ctx.lineWidth = Math.max(1, k);
+    ctx.beginPath(); ctx.arc(x, y, s * (0.62 + 0.04 * Math.sin(time * 3 + g.x)), time * 1.5, time * 1.5 + Math.PI * 1.4); ctx.stroke();
+  }
+  ctx.drawImage(S.gem[g.el] || S.gem.skill, Math.round(x - 7 * k), Math.round(y - 8 * k), Math.round(14 * k), Math.round(16 * k));
   // Funkeln
   const t = (time * 1.3 + g.x * 0.37) % 1;
   if (t < 0.35) {
@@ -291,4 +306,158 @@ export function drawUpdrafts(ctx, level, camX, camY, s, viewW, viewH, time) {
       ctx.fillRect(Math.round((lx - camX) * s), Math.round((ly - camY) * s), Math.max(1, Math.round(s * 0.06)), Math.round(s * 0.45));
     }
   }
+}
+
+
+// ---------- Leuchten (vorberechnet, schnell) ----------
+const GLOWS = new Map();
+function glowSprite(col) {
+  let c = GLOWS.get(col);
+  if (c) return c;
+  c = makeCanvas(64, 64);
+  const g = c.getContext('2d');
+  const grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grd.addColorStop(0, `rgba(${col},1)`); grd.addColorStop(0.35, `rgba(${col},0.45)`); grd.addColorStop(1, `rgba(${col},0)`);
+  g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+  GLOWS.set(col, c);
+  return c;
+}
+export function drawGlow(ctx, x, y, r, col, alpha = 1) {
+  const a = ctx.globalAlpha, sm = ctx.imageSmoothingEnabled;
+  ctx.globalAlpha = a * alpha;
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(glowSprite(col), x - r, y - r, r * 2, r * 2);
+  ctx.globalAlpha = a; ctx.imageSmoothingEnabled = sm;
+}
+
+// ---------- Seitenwind ----------
+export function drawWind(ctx, level, camX, camY, s, viewW, viewH, time) {
+  if (!level._windRuns) {
+    const runs = [];
+    for (let y = 0; y < level.h; y++) {
+      let x = 0;
+      while (x < level.w) {
+        const d = level.windAt(x, y);
+        if (!d) { x++; continue; }
+        const x0 = x;
+        while (x < level.w && level.windAt(x, y) === d) x++;
+        runs.push({ y, x0, x1: x, d });
+      }
+    }
+    level._windRuns = runs;
+  }
+  for (const r of level._windRuns) {
+    if (r.x1 < camX - 1 || r.x0 > camX + viewW + 1 || r.y < camY - 1 || r.y > camY + viewH + 1) continue;
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.fillRect(Math.round((r.x0 - camX) * s), Math.round((r.y - camY) * s), Math.round((r.x1 - r.x0) * s), Math.ceil(s));
+    const len = r.x1 - r.x0;
+    const n = Math.max(1, Math.ceil(len / 3));
+    for (let i = 0; i < n; i++) {
+      const ph = (time * 0.75 + i / n + r.y * 0.37) % 1;
+      const u = r.d > 0 ? ph : 1 - ph;
+      const lx = r.x0 + u * len;
+      const ly = r.y + 0.2 + ((i * 7 + r.y * 3) % 5) / 7 + Math.sin(time * 4 + i) * 0.06;
+      const a = 0.55 * Math.sin(ph * Math.PI);
+      ctx.fillStyle = `rgba(255,255,255,${a})`;
+      const w = s * 0.9;
+      ctx.fillRect(Math.round((lx - camX) * s - w / 2), Math.round((ly - camY) * s), Math.round(w), Math.max(1, Math.round(s * 0.06)));
+    }
+  }
+}
+
+// ---------- Wasserfaelle (Deko 'w') ----------
+export function drawWaterfalls(ctx, level, camX, camY, s, viewW, viewH, time) {
+  if (!level._falls) {
+    level._falls = level.decor.filter(d => d.type === 'waterfall').map(d => {
+      let y = d.y;
+      while (y < level.h && !level.solid(d.x, y + 1)) y++;
+      return { x: d.x, y0: d.y, y1: Math.min(level.h + 2, y + 1) };
+    });
+  }
+  const k = s / TS;
+  for (const f of level._falls) {
+    if (f.x < camX - 2 || f.x > camX + viewW + 2) continue;
+    const x0 = Math.round((f.x + 0.1 - camX) * s), w = Math.round(0.8 * s);
+    const yTop = Math.round((f.y0 + 0.3 - camY) * s), yBot = Math.round((f.y1 - camY) * s);
+    const grd = ctx.createLinearGradient(x0, 0, x0 + w, 0);
+    grd.addColorStop(0, 'rgba(120,200,250,0.85)'); grd.addColorStop(0.4, 'rgba(225,248,255,0.95)'); grd.addColorStop(1, 'rgba(90,170,235,0.85)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(x0, yTop, w, yBot - yTop);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    const n = Math.ceil((f.y1 - f.y0) / 1.3);
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < 3; j++) {
+        const ph = (time * 1.6 + i / n + j * 0.37) % 1;
+        const yy = yTop + ph * (yBot - yTop);
+        ctx.fillRect(x0 + Math.round((0.15 + j * 0.25) * w), Math.round(yy), Math.max(1, Math.round(k * 1.5)), Math.round(k * 5));
+      }
+    }
+    // Gischt oben
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    for (let i = 0; i < 4; i++) {
+      const a = time * 5 + i * 1.7;
+      ctx.beginPath(); ctx.arc(x0 + w * (0.15 + i * 0.23), yTop + Math.sin(a) * k * 1.5, k * (2 + Math.sin(a * 1.3)), 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+// ---------- Feuerspeier ----------
+export function drawSpitter(ctx, sp, camX, camY, s, time) {
+  const k = s / TS;
+  const x = (sp.x - camX) * s, y = (sp.y - camY) * s;
+  const cyc = (((time - sp.phase) % sp.period) + sp.period) % sp.period;
+  const charge = Math.max(0, 1 - (sp.period - cyc) / 0.7); // gluehen kurz vor dem Spucken
+  const flash = cyc < 0.15 ? 1 - cyc / 0.15 : 0;
+  const R = (px, py, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x + (sp.dir > 0 ? px : 16 - px - w) * k), Math.round(y + py * k), Math.ceil(w * k), Math.ceil(h * k)); };
+  // Steinkopf
+  R(1, 1, 14, 14, '#6e6556'); R(2, 2, 12, 12, '#a99f8a'); R(2, 2, 12, 2, '#cfc6b0'); R(3, 12, 10, 2, '#8a8170');
+  // Augen
+  const eye = charge > 0 ? `rgba(255,${200 - charge * 120},60,1)` : '#3a332b';
+  R(5, 5, 3, 2, '#3a332b'); R(10, 5, 3, 2, '#3a332b');
+  R(6, 5, 2, 1, eye); R(11, 5, 2, 1, eye);
+  // Maul (zur Spuckrichtung)
+  R(10, 9, 6, 4, '#2a1a12');
+  R(11, 10, 5, 2, flash > 0 ? '#ffe39a' : charge > 0 ? `rgba(255,${150 - charge * 60},40,${0.4 + charge * 0.6})` : '#4a2918');
+  if (charge > 0 || flash > 0) drawGlow(ctx, x + (sp.dir > 0 ? 14 : 2) * k, y + 11 * k, s * (0.5 + 0.6 * Math.max(charge, flash)), '255,150,60', 0.6);
+}
+
+export function drawFlame(ctx, f, camX, camY, s, time) {
+  const x = (f.x - camX) * s, y = (f.y - camY) * s;
+  const r = s * 0.36;
+  drawGlow(ctx, x, y, r * 2.4, '255,130,50', 0.8);
+  // Schweif
+  for (let i = 1; i <= 4; i++) {
+    const tx = x - f.sp.dir * r * 0.55 * i, ty = y + Math.sin(time * 20 + i * 1.3) * r * 0.15;
+    ctx.fillStyle = i < 2 ? 'rgba(255,200,80,0.8)' : 'rgba(255,110,40,0.55)';
+    ctx.beginPath(); ctx.arc(tx, ty, r * (1 - i * 0.18), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.fillStyle = '#ffd25a'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff6d0'; ctx.beginPath(); ctx.arc(x + f.sp.dir * r * 0.2, y - r * 0.1, r * 0.5, 0, Math.PI * 2); ctx.fill();
+}
+
+// ---------- Riesenrad: Nabe, Speichen, Felge ----------
+export function drawHub(ctx, hub, movers, camX, camY, s, time) {
+  const k = s / TS;
+  const cx = (hub.x - camX) * s, cy = (hub.y - camY) * s;
+  ctx.strokeStyle = 'rgba(120,80,40,0.55)'; ctx.lineWidth = Math.max(2, 2.5 * k);
+  ctx.beginPath(); ctx.arc(cx, cy, hub.r * s, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,215,120,0.45)'; ctx.lineWidth = Math.max(1, 1 * k);
+  ctx.beginPath(); ctx.arc(cx, cy, hub.r * s - 2 * k, 0, Math.PI * 2); ctx.stroke();
+  for (const m of movers) {
+    if (!m.hub || m.hub[0] !== hub.x || m.hub[1] !== hub.y) continue;
+    const px = (m.x + m.w / 2 - camX) * s, py = (m.y + 0.35 - camY) * s;
+    ctx.strokeStyle = '#5a3519'; ctx.lineWidth = Math.max(2, 3 * k);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
+    ctx.strokeStyle = '#b07a45'; ctx.lineWidth = Math.max(1, 1.2 * k);
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
+  }
+  // Zahnrad-Nabe
+  const r = 0.55 * s;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(time * 0.6);
+  ctx.fillStyle = '#6c3e23';
+  for (let i = 0; i < 8; i++) { ctx.rotate(Math.PI / 4); ctx.fillRect(-r * 0.22, -r * 1.25, r * 0.44, r * 0.5); }
+  ctx.restore();
+  ctx.fillStyle = '#8f5631'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#d9975a'; ctx.beginPath(); ctx.arc(cx, cy, r * 0.6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffd43b'; ctx.beginPath(); ctx.arc(cx, cy, r * 0.25, 0, Math.PI * 2); ctx.fill();
 }

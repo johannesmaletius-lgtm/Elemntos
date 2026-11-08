@@ -1,0 +1,186 @@
+// Biome: jedes Level hat sein eigenes Aussehen – Gras/Erde/Stein-Farben,
+// Baumart, Blumen, ferne Silhouetten, Wolkenmeer und Umgebungs-Partikel.
+// Die Spielmechanik (Kacheln, Dornen, Ranken ...) bleibt ueberall gleich gut lesbar.
+//
+// pal:      ueberschreibt Farben aus tiles.js/PAL (nur die angegebenen)
+// texture:  'cobble' (Kopfstein) | 'strata' (Gesteinsschichten)
+// stone:    'brick' | 'plate' (Messingplatten) | 'ice' (Eisziegel)
+// cover:    'grass' | 'sand' | 'snow' – Oberflaeche der Erde
+// hang:     was unter schwebenden Inseln haengt: 'vines' | 'roots' | 'icicles' | 'crystals'
+// tree:     Baumart fuer die Deko 'T'
+// flora:    Blumen/Pflanzen auf freien Flaechen (Liste von Arten)
+// far:      ferne Silhouetten im Hintergrund
+// ambient:  schwebende Partikel vor der Szene
+
+export const BIOMES = {
+  meadow: {
+    name: 'Blumenwiese',
+    texture: 'cobble', stone: 'brick', cover: 'grass', hang: 'vines',
+    tree: { kind: 'oak', leaves: ['#c4f05a', '#7fcf3a', '#3f9a2e', '#1f5e22'] },
+    bush: { leaves: ['#b6ec55', '#6cc23a', '#3b8f2e', '#1f5e22'], flowers: ['#ff6fae', '#ffffff'] },
+    flora: ['daisy', 'lupine', 'tuft', 'tuft', 'pebble'],
+    far: { kind: 'hills', cols: ['#9fd0f2', '#86bfe8'] },
+    islands: { grass: ['#b6e6a0', '#8fcf8f', '#6eb486', '#4f8f78'], rock: ['#a9bfdc', '#8ea6cc', '#7890bd', '#5f78a8'], leaves: ['#b6e6a0', '#6eb486', '#4f8f78'] },
+    sea: null,
+    ambient: { kind: 'pollen', n: 26, cols: ['#fffbe0', '#fff2a8', '#ffffff'] },
+    butterflies: ['#ffd23d', '#ff8ac8', '#9fdcff'],
+  },
+  blossom: {
+    name: 'Kirschblüten-Wolken',
+    pal: {
+      grassHi: '#f0ffbe', grassL: '#bdef86', grassM: '#86d468', grassD: '#55a453', grassO: '#2f6a40',
+      rockL: '#f2ccb4', rockM: '#d8a690', rockD: '#ad7a72', rockDD: '#82555e', mortar: '#5c3646',
+      stoneL: '#fffaf4', stoneM: '#e8e0da', stoneD: '#c2b6b8', stoneO: '#706472',
+      leafD: '#3c7a46', leafM: '#58a85a', leafL: '#9bdc72',
+    },
+    texture: 'cobble', stone: 'brick', cover: 'grass', hang: 'blossomVines',
+    tree: { kind: 'blossom', leaves: ['#fff0f7', '#ffc2de', '#f28cbc', '#b04e86'] },
+    bush: { leaves: ['#c4f07a', '#86d468', '#55a453', '#2f6a40'], flowers: ['#ffc2de', '#ffffff', '#ff8cbc'] },
+    flora: ['tulip', 'daisy', 'tuft', 'petals', 'tulip'],
+    far: { kind: 'blossomHills', cols: ['#f6d6ea', '#ecc0dc'], trees: '#f7b8d6' },
+    islands: { grass: ['#d8f2b8', '#b6e0a4', '#94c896', '#76a888'], rock: ['#e6cfe0', '#d2b6d0', '#b89ac0', '#9a80aa'], leaves: ['#ffd6ea', '#f2a8cc', '#d47aa8'] },
+    sea: ['#fff6fb', '#fbe6f2', '#f2d2e6', '#e6bcd8'],
+    ambient: { kind: 'petals', n: 34, cols: ['#ffd6ea', '#ffb3d6', '#fff0f7', '#f490c0'] },
+  },
+  mushroom: {
+    name: 'Pilzwald',
+    pal: {
+      grassHi: '#d4ff96', grassL: '#86e48e', grassM: '#44b97c', grassD: '#26855f', grassO: '#134f3e',
+      rockL: '#b094cc', rockM: '#8a70aa', rockD: '#644e86', rockDD: '#483864', mortar: '#2c2140',
+      stoneL: '#e8e0f0', stoneM: '#c4b8d4', stoneD: '#968aaa', stoneO: '#4f4563',
+      leafD: '#1f6a4a', leafM: '#38a06a', leafL: '#7ad88a',
+    },
+    texture: 'cobble', stone: 'brick', cover: 'grass', hang: 'roots',
+    tree: { kind: 'mushroom', caps: [['#ffe0f4', '#f08ad6', '#b44fb8', '#6a2a7a'], ['#e0fbff', '#7ad6f0', '#3a92c8', '#1d4f86'], ['#fff2c8', '#ffc24a', '#e07a2a', '#8a3a14']] },
+    bush: { kind: 'shrooms', leaves: ['#a6ec8a', '#5cc27a', '#2f8f5e', '#174f3a'], flowers: ['#f08ad6', '#7ad6f0', '#ffc24a'] },
+    flora: ['shroom', 'shroom', 'fern', 'tuft', 'glowshroom'],
+    far: { kind: 'mushrooms', cols: ['#9ccbe8', '#86b6dc'] },
+    islands: { grass: ['#a8e8b0', '#78cc98', '#56ae86', '#3f8a76'], rock: ['#b8a6d6', '#9e8cc4', '#8474b0', '#6a5c98'], leaves: ['#f2a8e0', '#c27ad0', '#8f56a8'] },
+    sea: null,
+    ambient: { kind: 'spores', n: 30, cols: ['#f4ffb0', '#c8ff8a', '#ffe6ff'] },
+  },
+  storm: {
+    name: 'Sturmhöhen',
+    pal: {
+      grassHi: '#e6f4a0', grassL: '#aed26e', grassM: '#7aaa4e', grassD: '#4f7c3c', grassO: '#2e4d2a',
+      rockL: '#bcc6d2', rockM: '#919daf', rockD: '#6a7688', rockDD: '#4c5668', mortar: '#2f3442',
+      stoneL: '#eaecee', stoneM: '#c4c9cf', stoneD: '#979da6', stoneO: '#525760',
+      woodL: '#c99a6a', woodM: '#946a44', woodD: '#5e4026',
+    },
+    texture: 'cobble', stone: 'brick', cover: 'grass', hang: 'roots',
+    tree: { kind: 'pine', leaves: ['#8fc06a', '#4f8c48', '#2f6438', '#1a3d26'] },
+    bush: { leaves: ['#b8d878', '#7aaa4e', '#4f7c3c', '#2e4d2a'], flowers: ['#6aa8ff', '#ffffff'] },
+    flora: ['windgrass', 'windgrass', 'cornflower', 'tuft', 'pebble'],
+    far: { kind: 'windmills', cols: ['#a9c4dc', '#93b2ce'] },
+    islands: { grass: ['#c2dca8', '#a0c494', '#84a888', '#688c7c'], rock: ['#b4bccc', '#9aa4b8', '#808ca4', '#687490'], leaves: ['#9cc490', '#6e9a78', '#527a66'] },
+    sea: ['#f4f7fa', '#e0e8f0', '#c8d4e2', '#b0c0d4'],
+    ambient: { kind: 'gusts', n: 22, cols: ['rgba(255,255,255,0.75)', '#a6d06a', '#7aaa4e'] },
+  },
+  ruins: {
+    name: 'Sandstein-Ruinen',
+    pal: {
+      grassHi: '#fff4c2', grassL: '#f4dc92', grassM: '#e0bc6c', grassD: '#bc914a', grassO: '#7e5a2c',
+      rockL: '#f4cc8e', rockM: '#dcac6a', rockD: '#bc874e', rockDD: '#946238', mortar: '#6c4426',
+      stoneL: '#fdebc0', stoneM: '#ecce92', stoneD: '#c8a266', stoneO: '#7c5c32',
+      leafD: '#4f7a2a', leafM: '#76a83a', leafL: '#a8d45a',
+    },
+    texture: 'strata', stone: 'brick', cover: 'sand', hang: 'roots',
+    tree: { kind: 'palm', leaves: ['#c8ec6a', '#86c43e', '#4f8c2e', '#2c5a1e'] },
+    bush: { kind: 'dry', leaves: ['#d6d48a', '#a8a85a', '#7c7a3e', '#4f4c26'], flowers: ['#ff5a4a', '#ffd23d'] },
+    flora: ['drygrass', 'succulent', 'poppy', 'drygrass', 'pebble'],
+    far: { kind: 'ruins', cols: ['#f0d6bc', '#e2c2a2'], alpha: 0.55 },
+    islands: { grass: ['#f2dca0', '#e2c486', '#c8a46c', '#a8865a'], rock: ['#dcbc98', '#c8a482', '#b08c6e', '#94745c'], leaves: ['#b0d47a', '#86ae5e', '#62884a'] },
+    sea: ['#fff8ec', '#f8ead4', '#eed8bc', '#e0c4a4'],
+    ambient: { kind: 'sand', n: 30, cols: ['#fff0c8', '#f4d896', '#ffffff'] },
+  },
+  clockwork: {
+    name: 'Messing-Inseln',
+    pal: {
+      grassHi: '#f6f294', grassL: '#cadc62', grassM: '#94b442', grassD: '#628632', grassO: '#3a5422',
+      rockL: '#cc9e70', rockM: '#a07854', rockD: '#78563c', rockDD: '#583e2c', mortar: '#33241a',
+      stoneL: '#ffe29a', stoneM: '#e0b05a', stoneD: '#ae7c34', stoneO: '#5e3d14',
+      woodL: '#e8b070', woodM: '#b47a40', woodD: '#74481e',
+    },
+    texture: 'cobble', stone: 'plate', cover: 'grass', hang: 'chains', ore: ['#ffe48a', '#e0a83a'],
+    tree: { kind: 'oak', leaves: ['#fff4a0', '#f6d04c', '#d69c2c', '#8a5a1a'] },
+    bush: { leaves: ['#f0e07a', '#c8b448', '#94822e', '#5e4e1a'], flowers: ['#ff8a3d', '#ffffff'] },
+    flora: ['sunflower', 'tuft', 'cog', 'tuft', 'daisy'],
+    far: { kind: 'gears', cols: ['#e8c48e', '#d8ae78'] },
+    islands: { grass: ['#e6e09a', '#ccc684', '#b0aa72', '#948e62'], rock: ['#d4b496', '#bc9a80', '#a2826c', '#886a58'], leaves: ['#f4d878', '#d6b05a', '#b08a44'] },
+    sea: ['#fff6e6', '#fbe8cc', '#f2d6b0', '#e6c294'],
+    ambient: { kind: 'motes', n: 28, cols: ['#fff2b0', '#ffd86a', '#ffffff'] },
+  },
+  canyon: {
+    name: 'Rote Klippen',
+    pal: {
+      grassHi: '#ffe48e', grassL: '#ecb84e', grassM: '#c88a30', grassD: '#925c22', grassO: '#5a3416',
+      rockL: '#f29a6e', rockM: '#d0704c', rockD: '#a44e3a', rockDD: '#76342c', mortar: '#4a1f1c',
+      stoneL: '#f4caac', stoneM: '#d69e84', stoneD: '#ac7462', stoneO: '#5e3a32',
+      leafD: '#7a5a1e', leafM: '#a8842e', leafL: '#d8b04a',
+    },
+    texture: 'strata', stone: 'brick', cover: 'grass', hang: 'roots',
+    tree: { kind: 'maple', leaves: ['#ffd27a', '#ff9a3a', '#e05a2a', '#8a2a1a'] },
+    bush: { leaves: ['#ffc46a', '#ec8a3a', '#c25a2a', '#7a301a'], flowers: ['#ffe48e', '#ffffff'] },
+    flora: ['drygrass', 'aster', 'tuft', 'aster', 'pebble'],
+    far: { kind: 'mesas', cols: ['#e4a08e', '#d48a7c'] },
+    islands: { grass: ['#f4c47e', '#e0a46a', '#c8865c', '#a86a50'], rock: ['#dc9a86', '#c48074', '#aa6a64', '#8e5658'], leaves: ['#ffb46a', '#e88450', '#c0603e'] },
+    sea: ['#fff2ea', '#fde0d2', '#f6c8b8', '#ecb0a2'],
+    ambient: { kind: 'leaves', n: 22, cols: ['#ff9a3a', '#e05a2a', '#ffd27a', '#c8441e'] },
+  },
+  thorn: {
+    name: 'Dornendickicht',
+    pal: {
+      grassHi: '#bdf2c4', grassL: '#70c6a2', grassM: '#428f86', grassD: '#2a5f68', grassO: '#1a3446',
+      rockL: '#8e78ac', rockM: '#6a588e', rockD: '#4c3e6e', rockDD: '#352a50', mortar: '#1d1630',
+      stoneL: '#bcb0d4', stoneM: '#9588b0', stoneD: '#6c608a', stoneO: '#352c4a',
+      woodL: '#a88a74', woodM: '#7a5e4e', woodD: '#4a3630',
+      leafD: '#1f4f4a', leafM: '#2f7a6a', leafL: '#5cb08e',
+    },
+    texture: 'cobble', stone: 'brick', cover: 'grass', hang: 'roots',
+    tree: { kind: 'dead', bark: ['#7a6688', '#5a4868', '#3c2e4c', '#1e1628'], leaves: ['#d68ae8', '#a85cc8', '#6e3a8e'] },
+    bush: { kind: 'bramble', leaves: ['#7ac4a4', '#428f86', '#2a5f68', '#1a3446'], flowers: ['#d68ae8', '#8ae8ff'] },
+    flora: ['bell', 'tuft', 'glowflower', 'bell', 'pebble'],
+    far: { kind: 'brambles', cols: ['#8e6c9e', '#7a5a8e'], alpha: 0.75 },
+    islands: { grass: ['#8ac4b0', '#68a49c', '#4e8488', '#3a6676'], rock: ['#9a88b8', '#8070a4', '#685a8e', '#524678'], leaves: ['#b884d0', '#8e60b0', '#6a4490'] },
+    sea: ['#f0e8f6', '#ddd0ea', '#c8b8dc', '#b4a0cc'],
+    ambient: { kind: 'fireflies', n: 26, cols: ['#e8ff8a', '#b8ff6a', '#fff6a0'] },
+  },
+  starlit: {
+    name: 'Mondkristalle',
+    pal: {
+      grassHi: '#d0fff8', grassL: '#76e2da', grassM: '#3aaabc', grassD: '#26709a', grassO: '#163e64',
+      rockL: '#6e82c4', rockM: '#5262a2', rockD: '#3c4a80', rockDD: '#2a345e', mortar: '#171d3a',
+      stoneL: '#dce6fa', stoneM: '#aebce0', stoneD: '#808ebc', stoneO: '#3d4670',
+      woodL: '#a8b4d8', woodM: '#7480b0', woodD: '#465080',
+      leafD: '#1e5a6a', leafM: '#2e8a96', leafL: '#5cc8c8',
+    },
+    texture: 'cobble', stone: 'brick', cover: 'grass', hang: 'crystals',
+    tree: { kind: 'crystal', leaves: ['#f0ffff', '#a8f0ff', '#5cc0f0', '#2a6aa8'] },
+    bush: { kind: 'crystals', leaves: ['#a8f0ff', '#5cc0f0', '#3a86c8', '#1d4f86'], flowers: ['#ffffff', '#d8b0ff'] },
+    flora: ['crystal', 'glowshroom', 'tuft', 'glowflower', 'crystal'],
+    far: { kind: 'spires', cols: ['#3a4f8a', '#30437a'], alpha: 0.8 },
+    islands: { grass: ['#8ad8e0', '#62b4cc', '#4a92b4', '#3a7298'], rock: ['#7a8cc8', '#6474b2', '#505e9a', '#3e4a80'], leaves: ['#b8f0ff', '#7ac8f0', '#4c96d0'] },
+    sea: ['#e8eeff', '#d0dcf6', '#b8c8ec', '#a0b4e0'],
+    ambient: { kind: 'fireflies', n: 30, cols: ['#a8f0ff', '#d8f8ff', '#c8b0ff'] },
+  },
+  aurora: {
+    name: 'Eisgipfel',
+    pal: {
+      grassHi: '#ffffff', grassL: '#eef6ff', grassM: '#d2e4f6', grassD: '#a8c6e8', grassO: '#6e8eba',
+      rockL: '#b6cae2', rockM: '#90a8ca', rockD: '#6c84aa', rockDD: '#4e638a', mortar: '#2e3c5c',
+      stoneL: '#f2fbff', stoneM: '#c8e6f8', stoneD: '#92bee2', stoneO: '#4e78a2',
+      woodL: '#d8c4a8', woodM: '#a88e70', woodD: '#6a5644',
+      leafD: '#2a5a5a', leafM: '#3a8078', leafL: '#6ab4a0',
+    },
+    texture: 'cobble', stone: 'ice', cover: 'snow', hang: 'icicles',
+    tree: { kind: 'fir', leaves: ['#7ab8a0', '#3f7c6c', '#25544e', '#163a3a'] },
+    bush: { kind: 'snowy', leaves: ['#7ab8a0', '#3f7c6c', '#25544e', '#163a3a'], flowers: ['#ffffff', '#a8e0ff'] },
+    flora: ['icecrystal', 'snowtuft', 'snowtuft', 'bluebell', 'pebble'],
+    far: { kind: 'peaks', cols: ['#4a6a9a', '#3c5888'], snow: '#c8dcf2', alpha: 0.7 },
+    islands: { grass: ['#f4faff', '#dcecfa', '#c0d8f0', '#a4c0e2'], rock: ['#9cb2d4', '#849cc2', '#6c86ae', '#58709a'], leaves: ['#8ab8b0', '#5e9088', '#447068'] },
+    sea: ['#f4f8ff', '#e0eafa', '#c8d8f2', '#b0c6e8'],
+    ambient: { kind: 'snow', n: 48, cols: ['#ffffff', '#eef6ff', '#d8ecff'] },
+  },
+};
+
+export function getBiome(id) { return BIOMES[id] || BIOMES.meadow; }

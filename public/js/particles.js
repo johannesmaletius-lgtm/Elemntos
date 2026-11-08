@@ -4,7 +4,7 @@ export class Particles {
 
   add(p) {
     if (this.list.length > 700) this.list.shift();
-    this.list.push(Object.assign({ vx: 0, vy: 0, grav: 0, drag: 0, life: 0.5, size: 0.12, color: '#fff', type: 'rect', rot: 0, vr: 0, t: 0, fade: true, grow: 0 }, p));
+    this.list.push(Object.assign({ vx: 0, vy: 0, grav: 0, drag: 0, life: 0.5, size: 0.12, color: '#fff', type: 'rect', rot: 0, vr: 0, t: 0, fade: true, grow: 0, glow: false }, p));
   }
 
   burst(x, y, n, opts) {
@@ -16,7 +16,7 @@ export class Particles {
         vx: Math.cos(a) * sp + (opts.vx ?? 0), vy: Math.sin(a) * sp + (opts.vy ?? 0),
         grav: opts.grav ?? 0, drag: opts.drag ?? 2, life: (opts.life ?? 0.5) * (0.6 + Math.random() * 0.8),
         size: (opts.size ?? 0.12) * (0.6 + Math.random() * 0.8), color: Array.isArray(opts.color) ? opts.color[Math.floor(Math.random() * opts.color.length)] : opts.color,
-        type: opts.type ?? 'rect', vr: (Math.random() - 0.5) * (opts.spin ?? 0), grow: opts.grow ?? 0,
+        type: opts.type ?? 'rect', vr: (Math.random() - 0.5) * (opts.spin ?? 0), grow: opts.grow ?? 0, glow: !!opts.glow,
       });
     }
   }
@@ -36,8 +36,12 @@ export class Particles {
     }
   }
 
-  draw(ctx, camX, camY, s) {
+  // glow=false: normale Partikel; glow=true: leuchtende (nach dem Licht-Tint, additiv)
+  draw(ctx, camX, camY, s, glow = false) {
+    const op = ctx.globalCompositeOperation;
+    if (glow) ctx.globalCompositeOperation = 'lighter';
     for (const p of this.list) {
+      if (p.glow !== glow) continue;
       const a = p.fade ? 1 - p.t / p.life : 1;
       const x = (p.x - camX) * s, y = (p.y - camY) * s;
       const z = Math.max(1, p.size * s);
@@ -53,6 +57,20 @@ export class Particles {
         ctx.fillRect(x - r * 0.25, y - r, r * 0.5, r * 2);
       } else if (p.type === 'circle') {
         ctx.beginPath(); ctx.arc(x, y, z / 2, 0, Math.PI * 2); ctx.fill();
+      } else if (p.type === 'drop') {
+        // Tropfen: in Flugrichtung gestreckt
+        const ang = Math.atan2(p.vy, p.vx), L = Math.min(3, 1 + Math.hypot(p.vx, p.vy) * 0.12);
+        ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+        ctx.beginPath(); ctx.ellipse(0, 0, z * 0.5 * L, z * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      } else if (p.type === 'leaf') {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(p.rot);
+        ctx.beginPath(); ctx.ellipse(0, 0, z * 0.6, z * 0.3 * (0.4 + 0.6 * Math.abs(Math.cos(p.t * 7))), 0, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      } else if (p.type === 'wisp') {
+        // Luft-Wirbel: kleiner Bogen
+        ctx.strokeStyle = p.color; ctx.lineWidth = Math.max(1, z * 0.25);
+        ctx.beginPath(); ctx.arc(x, y, z, p.rot, p.rot + Math.PI * 1.1); ctx.stroke();
       } else if (p.rot) {
         ctx.save(); ctx.translate(x, y); ctx.rotate(p.rot); ctx.fillRect(-z / 2, -z / 2, z, z); ctx.restore();
       } else {
@@ -60,5 +78,6 @@ export class Particles {
       }
     }
     ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = op;
   }
 }
