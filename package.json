@@ -1,0 +1,16 @@
+{
+  "name": "elementos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Elementos – 2D-Jump'n'Run fuer bis zu 4 Spieler im Browser (Handy & PC)",
+  "type": "module",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "sprites": "python3 tools/build_sprites.py"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

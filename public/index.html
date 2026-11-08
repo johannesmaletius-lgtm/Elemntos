@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a7ff5">
+<title>Elementos – Himmelsinseln</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="assets/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div class="hud-left">
+    <div class="hud-pill"><span class="coin-ico"></span><span id="hud-coins">0</span></div>
+    <div class="hud-pill" id="hud-gems"></div>
+  </div>
+  <div class="hud-center"><div class="hud-pill" id="hud-time">0:00</div></div>
+  <div class="hud-right">
+    <div class="hud-pill hud-ability" id="hud-ability"></div>
+    <button class="hud-btn" id="btn-pause" aria-label="Pause">❚❚</button>
+  </div>
+  <div id="toast"></div>
+</div>
+
+<!-- Touch-Steuerung -->
+<div id="touch" class="hidden">
+  <div id="stick-zone"></div>
+  <div id="stick"><div id="stick-knob"></div></div>
+  <div id="stick-hint">◀ gehen &nbsp;·&nbsp; weit ziehen = rennen ▶</div>
+  <button id="btn-ability" class="tbtn"><span id="btn-ability-ico"></span></button>
+  <button id="btn-jump" class="tbtn">⤒</button>
+</div>
+
+<!-- Bildschirme -->
+<div id="screens">
+  <section id="scr-title" class="screen">
+    <div class="panel title-panel">
+      <h1>Elementos</h1>
+      <p class="sub">Welt 1 · Himmelsinseln</p>
+      <div class="title-chars" id="title-chars"></div>
+      <button class="btn big" id="btn-solo">Allein spielen</button>
+      <button class="btn big alt" id="btn-host">Mit Freunden spielen</button>
+      <p class="small">Bis zu 4 Spieler – lade Freunde per Link ein.</p>
+      <button class="btn tiny" id="btn-mute">🔊 Ton an</button>
+    </div>
+  </section>
+
+  <section id="scr-select" class="screen hidden">
+    <div class="panel wide">
+      <h2 id="select-title">Wähle dein Element</h2>
+      <div class="name-row">
+        <label for="inp-name">Dein Name</label>
+        <input id="inp-name" maxlength="12" autocomplete="off" placeholder="Name">
+      </div>
+      <div class="char-grid" id="char-grid"></div>
+      <div class="row">
+        <button class="btn" id="btn-select-back">Zurück</button>
+        <button class="btn primary" id="btn-select-go">Los geht's!</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="scr-lobby" class="screen hidden">
+    <div class="panel wide">
+      <h2>Raum <span id="lobby-code" class="code"></span></h2>
+      <div class="invite">
+        <input id="lobby-link" readonly>
+        <button class="btn" id="btn-share">Link teilen</button>
+        <button class="btn" id="btn-copy">Kopieren</button>
+      </div>
+      <div class="char-grid" id="lobby-grid"></div>
+      <p class="small" id="lobby-hint">Tippe auf ein Element, um es auszuwählen.</p>
+      <div class="row">
+        <button class="btn" id="btn-lobby-leave">Verlassen</button>
+        <button class="btn primary" id="btn-lobby-start">Spiel starten</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="scr-pause" class="screen hidden dim">
+    <div class="panel">
+      <h2>Pause</h2>
+      <div class="ability-help" id="pause-help"></div>
+      <button class="btn big primary" id="btn-resume">Weiter</button>
+      <button class="btn big" id="btn-restart">Neu starten</button>
+      <button class="btn big" id="btn-menu">Hauptmenü</button>
+      <button class="btn tiny" id="btn-mute2">🔊</button>
+    </div>
+  </section>
+
+  <section id="scr-results" class="screen hidden dim">
+    <div class="panel wide">
+      <h2 id="res-title">Geschafft!</h2>
+      <div class="res-stats" id="res-stats"></div>
+      <div class="res-players" id="res-players"></div>
+      <div class="row">
+        <button class="btn" id="btn-res-menu">Hauptmenü</button>
+        <button class="btn primary" id="btn-res-again">Nochmal</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="scr-wait" class="screen hidden">
+    <div class="wait-box" id="wait-box"><span id="wait-text">Im Ziel! Warte auf die anderen …</span>
+      <button class="btn tiny" id="btn-wait-results">Ergebnis anzeigen</button></div>
+  </section>
+
+  <section id="scr-msg" class="screen hidden dim">
+    <div class="panel">
+      <h2 id="msg-title">Hinweis</h2>
+      <p id="msg-text"></p>
+      <button class="btn primary" id="btn-msg-ok">OK</button>
+    </div>
+  </section>
+</div>
+
+<div id="rotate"><div><div class="rot-ico">📱↻</div>Bitte das Handy quer halten</div></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

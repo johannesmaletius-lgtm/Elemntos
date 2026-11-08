@@ -1,0 +1,42 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Rig-Test</title>
+<style>body{margin:0;background:#7cc4ff;font:12px sans-serif}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script type="module">
+import { Rig } from '../js/rig.js';
+import { targetPose, createAnimState } from '../js/anim.js';
+import { PHYS } from '../js/config.js';
+const ids = ['air','water','earth','fire'];
+// Pfade relativ zu /dev/ laden
+async function loadRigRel(id) {
+  const meta = await fetch('../assets/chars/' + id + '.json').then(r => r.json());
+  const img = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = '../assets/chars/' + id + '.png'; });
+  return new Rig(id, meta, img);
+}
+const rigs = await Promise.all(ids.map(loadRigRel));
+const c = document.getElementById('c'); const ctx = c.getContext('2d');
+const base = { vx:0, vy:0, onGround:true, facing:1, flipT:0, flipDur:0.35, dashT:0, pound:null, gliding:false, skid:false, throwT:0, dead:false, finished:false, invuln:0 };
+const ALL = [
+  ['idle', {}],
+  ['walk 0', {vx:PHYS.walkMax}, 0], ['walk 1', {vx:PHYS.walkMax}, Math.PI/2], ['walk 2', {vx:PHYS.walkMax}, Math.PI], ['walk 3', {vx:PHYS.walkMax}, Math.PI*1.5],
+  ['run 0', {vx:PHYS.runMax}, 0], ['run 1', {vx:PHYS.runMax}, Math.PI/2], ['run 2', {vx:PHYS.runMax}, Math.PI], ['run 3', {vx:PHYS.runMax}, Math.PI*1.5],
+  ['jump', {onGround:false, vy:-14, vx:5}], ['fall', {onGround:false, vy:12}], ['skid', {skid:true, vx:6}],
+  ['glide', {onGround:false, vy:2, gliding:true}], ['dash', {dashT:0.1, vx:20}], ['pound', {pound:'windup', onGround:false}], ['slam', {pound:'slam', onGround:false, vy:25}],
+];
+const sel = new URLSearchParams(location.search).get('p'); const poses = sel ? ALL.filter(x=>sel.split(',').includes(x[0])) : ALL;
+const H = +(new URLSearchParams(location.search).get('h')||150), colW = H*0.8;
+c.width = colW * poses.length; c.height = (H + 40) * ids.length + 20;
+ctx.fillStyle = '#7cc4ff'; ctx.fillRect(0,0,c.width,c.height);
+rigs.forEach((rig, r) => {
+  poses.forEach(([name, over, phase], i) => {
+    const a = createAnimState(); if (phase !== undefined) a.phase = phase;
+    const p = Object.assign({charId: ids[r]}, base, over);
+    const { T } = targetPose(a, p, 0, 0.3);
+    const x = i * colW + colW/2, y = r * (H + 40) + H + 20;
+    ctx.fillStyle = '#4a2c1c'; ctx.fillRect(i*colW+5, y, colW-10, 3);
+    rig.draw(ctx, T, x, y, H, 1, 0.3);
+    ctx.fillStyle = '#000'; ctx.fillText(name, i*colW + 8, y + 16);
+  });
+});
+document.title = 'ready';
+</script></body></html>

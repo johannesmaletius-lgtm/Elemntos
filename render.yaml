@@ -1,0 +1,9 @@
+# Ein-Klick-Hosting auf render.com (kostenloser Plan reicht).
+services:
+  - type: web
+    name: elementos
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health

@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Level-Uebersicht</title>
+<style>body{margin:0;background:#222}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script type="module">
+import { WORLD1 } from '../js/levels/world1.js';
+import { Level } from '../js/level.js';
+import { TileRenderer } from '../js/tiles.js';
+import * as E from '../js/entities.js';
+const q = new URLSearchParams(location.search);
+const s = +(q.get('s') || 12), strip = +(q.get('strip') || 135), from = +(q.get('from') || 0), to = +(q.get('to') || 9999);
+const lv = new Level(WORLD1.maps[+(q.get('m') || 0)]);
+const tr = new TileRenderer(lv);
+const W = strip * s, end = Math.min(lv.w, to), n = Math.ceil((end - from) / strip);
+const c = document.getElementById('c'); c.width = W; c.height = n * (lv.h * s + 16);
+const ctx = c.getContext('2d');
+for (let i = 0; i < n; i++) {
+  const x0 = from + i * strip;
+  ctx.save();
+  ctx.translate(0, i * (lv.h * s + 16));
+  ctx.beginPath(); ctx.rect(0, 0, W, lv.h * s); ctx.clip();
+  const g = ctx.createLinearGradient(0, 0, 0, lv.h * s); g.addColorStop(0, '#1d8cf8'); g.addColorStop(1, '#a8dcff');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, lv.h * s);
+  tr.draw(ctx, x0, 0, s, strip, lv.h);
+  tr.drawDynamic(ctx, x0, 0, s, strip, lv.h);
+  E.drawUpdrafts(ctx, lv, x0, 0, s, strip, lv.h, 0.5);
+  for (const m of lv.movers) {
+    // Pfad
+    ctx.strokeStyle = 'rgba(255,255,0,.8)'; ctx.setLineDash([4, 3]); ctx.beginPath();
+    m.segs.forEach((sg, k) => { if (k === 0) ctx.moveTo((sg.ax - x0) * s, sg.ay * s); ctx.lineTo((sg.bx - x0) * s, sg.by * s); });
+    ctx.stroke(); ctx.setLineDash([]);
+    E.drawMover(ctx, m, x0, 0, s);
+  }
+  for (const cc of lv.crumbles) E.drawCrumble(ctx, cc, x0, 0, s, 0);
+  if (lv.goal) E.drawGoal(ctx, lv.goal, x0, 0, s, 0);
+  for (const cp of lv.checkpoints) E.drawCheckpoint(ctx, cp, x0, 0, s, 0);
+  for (const sp of lv.springs) E.drawSpring(ctx, sp, x0, 0, s);
+  for (const co of lv.coins) E.drawCoin(ctx, co, x0, 0, s, 0);
+  for (const gm of lv.gems) E.drawGem(ctx, gm, x0, 0, s, 0);
+  // Raster + Spalten-Nummern
+  ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.font = `${Math.max(9, s * 0.8)}px monospace`;
+  for (let x = Math.ceil(x0 / 5) * 5; x < x0 + strip; x += 5) {
+    ctx.fillStyle = x % 10 === 0 ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.15)';
+    ctx.fillRect((x - x0) * s, 0, 1, lv.h * s);
+    if (x % 10 === 0) { ctx.fillStyle = '#fff'; ctx.fillText(x, (x - x0) * s + 2, 10); }
+  }
+  for (let y = 0; y < lv.h; y += 1) { ctx.fillStyle = y % 5 === 0 ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.08)'; ctx.fillRect(0, y * s, W, 1); }
+  ctx.restore();
+}
+document.title = 'ready';
+</script></body></html>

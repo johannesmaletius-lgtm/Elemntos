@@ -1,0 +1,27 @@
+{
+  "name": "Elementos – Himmelsinseln",
+  "short_name": "Elementos",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0a7ff5",
+  "theme_color": "#0a7ff5",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    }
+  ],
+  "scope": "./"
+}
